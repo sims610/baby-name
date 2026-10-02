@@ -1,11 +1,15 @@
-# Problems & Solutions
+# General Notes
+
+## Problems & Solutions
 
 **Problem:** FamilySearch API's are only available once your application is approved. Our application is unlikely to be approved.\
-**Solutions:** Luckily, there are many other sites and options to provide us the data that we need. One option is wikitree and their API's
+- **Solution:** Luckily, there are many other sites and options to provide us the data that we need. One option is wikitree and their API's
 
----
+## Links
 
-# FamilySearch API: Random Boy or Girl Name
+- [Wikitree API guide](https://github.com/wikitree/wikitree-api/blob/main/README.md)
+
+## FamilySearch API: Random Boy or Girl Name
 
 FamilySearch has **no "random name" endpoint**. Instead:
 1. Get the signed-in user's person ID.
@@ -21,7 +25,7 @@ Authorization: Bearer <ACCESS_TOKEN>
 Accept: application/x-fs-v1+json
 ```
 
-## Step 1: Get the current user's person ID
+### Step 1: Get the current user's person ID
 
 ```
 GET https://api.familysearch.org/platform/tree/current-person
@@ -29,7 +33,7 @@ GET https://api.familysearch.org/platform/tree/current-person
 Returns `303 See Other`. The `Location` header has the person URL, e.g.
 `.../platform/tree/persons/KWCB-HZV`. The ID is the last part (`KWCB-HZV`).
 
-## Step 2: Get their ancestors
+### Step 2: Get their ancestors
 
 ```
 GET https://api.familysearch.org/platform/tree/ancestry?person=KWCB-HZV&generations=8
@@ -53,7 +57,7 @@ Example response (trimmed):
 }
 ```
 
-## Step 3: Pick a random boy or girl name
+### Step 3: Pick a random boy or girl name
 
 Filter `persons` by `display.gender` (`"Male"` or `"Female"`), skip the user
 themself (`ascendancyNumber` `"1"`), then pick one at random and use the first
