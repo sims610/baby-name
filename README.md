@@ -7,3 +7,13 @@ This project will be a FamilySearch based baby name generator web app. It will s
 * Ability to link your account with a spouse to see the names you both matched on.
 * Page of history and meaning for each name.
 * Ability to filter suggestions by boy, girl, or surprise.
+
+## Website Mock-up
+
+### Logo
+
+<img src="LittleRoots_Logo.webp" alt="LittleRoots Logo" width="25%">
+
+### Welcome Page
+
+<img src="babynames.png" alt="Welcome Page" width="50%">
