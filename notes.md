@@ -2,12 +2,15 @@
 
 ## Problems & Solutions
 
-**Problem:** FamilySearch API's are only available once your application is approved. Our application is unlikely to be approved.\
-- **Solution:** Luckily, there are many other sites and options to provide us the data that we need. One option is wikitree and their API's
+**Problem:** FamilySearch API's are only available once your application is approved. Our application is unlikely to be approved.
+- **Solution:** Wikitree is a potential solution. Wikitree is a family tree website that offers free api use. Trees may be selected as private, and only users with the right access can look at those files.
+- **Solution:** Downloading a GED file from RootsMagic per use-case scenario.
+- **Solution:** Hard-code user data for demo purposes.
 
 ## Links
 
 - [Wikitree API guide](https://github.com/wikitree/wikitree-api/blob/main/README.md)
+- [Wikitree Login/Logout help](https://github.com/wikitree/wikitree-api/blob/main/authentication.md)
 
 ## FamilySearch API: Random Boy or Girl Name
 
