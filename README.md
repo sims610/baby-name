@@ -12,8 +12,33 @@ This project will be a FamilySearch based baby name generator web app. It will s
 
 ### Logo
 
-<img src="LittleRoots_Logo.webp" alt="LittleRoots Logo" width="25%">
+<img src="client/public/LittleRoots_Logo.png" alt="LittleRoots Logo" width="25%">
 
 ### Welcome Page
 
 <img src="babynames.png" alt="Welcome Page" width="50%">
+
+## Getting Started
+
+### Prerequisites
+* [Node.js](https://nodejs.org/) (includes npm)
+
+### Installation
+From the project's root folder, install the dependencies:
+
+```bash
+npm install
+```
+
+This installs the dependencies for every workspace in one step, so you don't need to run it inside each folder.
+
+### Running the App
+Start the development servers:
+
+```bash
+npm run dev
+```
+
+Once it's running, open the local URL Vite prints in the terminal (usually http://localhost:5173).
+
+> **Note:** Only the client runs for now. The server hasn't been built yet, so you'll see a `No workspaces found: --workspace=server` error in the terminal. You can ignore it; the client still starts normally.

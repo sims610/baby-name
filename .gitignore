@@ -1,2 +1,5 @@
 auth.json
 auth.md
+node_modules
+dist
+.env
