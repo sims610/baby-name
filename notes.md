@@ -14,12 +14,23 @@
 
 ## Website Function
 
-| User activity | Frontend component | Backend endpoints |
+| User activity | Frontend component | Backend endpoints | Database |
+| --- | --- | --- | --- |
+| View home page | home.tsx | none | none |
+| Register new user | unknown | POST /api/auth | `addUser` → users.get(email), users.set(email, user)<br>`createSession` → sessions.set(token, userId) |
+| Login new user | unknown | PUT /api/auth | `verifyUser` → users.get(email)<br>`createSession` → sessions.set(token, userId) |
+| Logout | unknown | DELETE /api/auth | `getUserByToken` → sessions.get(token)<br>`deleteSession` → sessions.delete(token) |
+| Generate name | unknown | GET /api/name | `getUserByToken` → sessions.get(token)<br>`getRandomName` → read fakeAncestry.persons (filter by gender) |
+| Save name as favorite | unknown | POST /api/name | `getUserByToken` → sessions.get(token)<br>`addFavorite` → favorites.get(userId), favorites.set(userId, [...]) |
+
+**Database collections** (key-value, in memory in `server/src/database/database.ts`):
+
+| Collection | Key | Value |
 | --- | --- | --- |
-| View home page | home.tsx | none |
-| Register new user | unknown | POST /api/auth |  |
-| Login new user | unknown | PUT /api/auth |  |
-| Logout | unknown | DELETE /api/auth | |
+| users | email (lowercased) | `{ id, name, email, passwordHash }` |
+| sessions | token | userId |
+| favorites | userId | `[{ name, gender? }]` |
+| fakeAncestry (read-only, `fakeData.ts`) | none | `{ persons: [{ id, display: { name, gender, ascendancyNumber } }] }` |
 
 ## FamilySearch API: Random Boy or Girl Name
 
