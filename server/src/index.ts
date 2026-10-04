@@ -1,18 +1,6 @@
-import { createServer } from "node:http";
+import app from './service.ts';
 
-const PORT = Number(process.env.PORT ?? 3000);
-
-const server = createServer((req, res) => {
-  if (req.method === "GET" && req.url === "/api/health") {
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ status: "ok", time: new Date().toISOString() }));
-    return;
-  }
-
-  res.writeHead(404, { "Content-Type": "application/json" });
-  res.end(JSON.stringify({ error: "Not found" }));
-});
-
-server.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+const port = process.argv[2] || 3000;
+app.listen(port, () => {
+  console.log(`Server started on port ${port}`);
 });

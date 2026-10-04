@@ -12,6 +12,15 @@
 - [Wikitree API guide](https://github.com/wikitree/wikitree-api/blob/main/README.md)
 - [Wikitree Login/Logout help](https://github.com/wikitree/wikitree-api/blob/main/authentication.md)
 
+## Website Function
+
+| User activity | Frontend component | Backend endpoints |
+| --- | --- | --- |
+| View home page | home.tsx | none |
+| Register new user | unknown | POST /api/auth |  |
+| Login new user | unknown | PUT /api/auth |  |
+| Logout | unknown | DELETE /api/auth | |
+
 ## FamilySearch API: Random Boy or Girl Name
 
 FamilySearch has **no "random name" endpoint**. Instead:
