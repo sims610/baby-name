@@ -1,17 +1,29 @@
 
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router";
+import type { ContactMessageInput } from "shared";
+import { ApiError } from "@/api/client";
+import { useAuth } from "@/auth/useAuth";
+import { NETWORK_ERROR_MESSAGE } from "@/components/form/validation";
 import "./contact.css";
 
-export default function Contact() {
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    email: "",
-    message: "",
-  });
+type SubmitStatus =
+  | { state: "idle" }
+  | { state: "sending" }
+  | { state: "sent" }
+  | { state: "error"; message: string };
 
-  const [submitted, setSubmitted] = useState(false);
+const EMPTY_FORM = {
+  name: "",
+  phone: "",
+  email: "",
+  message: "",
+};
+
+export default function Contact() {
+  const { authRequest } = useAuth();
+  const [formData, setFormData] = useState(EMPTY_FORM);
+  const [status, setStatus] = useState<SubmitStatus>({ state: "idle" });
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -23,15 +35,38 @@ export default function Contact() {
       [name]: value,
     }));
 
-    setSubmitted(false);
+    if (status.state !== "sending") {
+      setStatus({ state: "idle" });
+    }
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (status.state === "sending") return;
 
-    // TODO: Connect this form to the backend API.
-    // This currently does not send or save the message.
-    setSubmitted(true);
+    setStatus({ state: "sending" });
+
+    const body: ContactMessageInput = {
+      name: formData.name,
+      email: formData.email,
+      message: formData.message,
+      ...(formData.phone.trim() ? { phone: formData.phone } : {}),
+    };
+
+    try {
+      // authRequest so a signed-in sender is linked to their account; it works signed out too.
+      await authRequest("/contact", { method: "POST", body });
+      setFormData(EMPTY_FORM);
+      setStatus({ state: "sent" });
+    } catch (error) {
+      setStatus({
+        state: "error",
+        message:
+          error instanceof ApiError
+            ? error.message
+            : NETWORK_ERROR_MESSAGE,
+      });
+    }
   };
 
   return (
@@ -157,6 +192,7 @@ export default function Contact() {
                 aria-label="Your name"
                 value={formData.name}
                 onChange={handleChange}
+                maxLength={100}
                 required
               />
 
@@ -167,6 +203,7 @@ export default function Contact() {
                 aria-label="Phone number"
                 value={formData.phone}
                 onChange={handleChange}
+                maxLength={30}
               />
 
               <input
@@ -176,6 +213,7 @@ export default function Contact() {
                 aria-label="Email address"
                 value={formData.email}
                 onChange={handleChange}
+                maxLength={254}
                 required
               />
 
@@ -186,16 +224,27 @@ export default function Contact() {
                 value={formData.message}
                 onChange={handleChange}
                 rows={4}
+                maxLength={5000}
                 required
               />
 
-              <button type="submit" className="contact-submit-button">
-                Send
+              <button
+                type="submit"
+                className="contact-submit-button"
+                disabled={status.state === "sending"}
+              >
+                {status.state === "sending" ? "Sending…" : "Send"}
               </button>
 
-              {submitted && (
+              {status.state === "sent" && (
                 <p className="contact-form-notice" role="status">
-                  This is a demo form. Your message has not been sent yet.
+                  Thanks! Your message has been sent.
+                </p>
+              )}
+
+              {status.state === "error" && (
+                <p className="contact-form-notice" role="alert">
+                  {status.message}
                 </p>
               )}
             </form>

@@ -20,3 +20,11 @@ export interface BabyName {
   origin: string;
   meaning: string;
 }
+
+/** What a visitor submits through the Contact form. */
+export interface ContactMessageInput {
+  name: string;
+  email: string;
+  phone?: string;
+  message: string;
+}

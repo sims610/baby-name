@@ -1,6 +1,6 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
-import type { BabyName, FavoriteName, NameGender, User } from 'shared';
+import type { BabyName, ContactMessageInput, FavoriteName, NameGender, User } from 'shared';
 import { fakeAncestry } from './fakeData.ts';
 import type { AncestorPerson } from './fakeData.ts';
 import { nameInfo } from './nameInfo.ts';
@@ -118,4 +118,26 @@ export function addFavorite(userId: string, favorite: FavoriteName): FavoriteNam
 
 export function listFavorites(userId: string): FavoriteName[] {
   return favoritesByUser.get(userId) ?? [];
+}
+interface StoredContactMessage extends ContactMessageInput {
+  id: string;
+  userId?: string; // set when the sender was signed in
+  receivedAt: string;
+}
+
+const contactMessages: StoredContactMessage[] = [];
+
+export function addContactMessage(input: ContactMessageInput, userId?: string): StoredContactMessage {
+  const stored: StoredContactMessage = {
+    ...input,
+    id: randomUUID(),
+    ...(userId ? { userId } : {}),
+    receivedAt: new Date().toISOString(),
+  };
+  contactMessages.push(stored);
+  return stored;
+}
+
+export function listContactMessages(): StoredContactMessage[] {
+  return contactMessages;
 }

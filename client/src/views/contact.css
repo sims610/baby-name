@@ -222,8 +222,13 @@
   transition: background-color 0.2s ease;
 }
 
-.contact-submit-button:hover {
+.contact-submit-button:hover:not(:disabled) {
   background-color: #c1dd92;
+}
+
+.contact-submit-button:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 .contact-form-notice {

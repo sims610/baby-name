@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import { authRouter, setAuthUser } from './routes/authRouter.ts';
 import { nameRouter } from './routes/nameRouter.ts';
+import { contactRouter } from './routes/contactRouter.ts';
 
 interface HttpError extends Error {
   statusCode?: number;
@@ -22,10 +23,11 @@ const apiRouter = express.Router();
 app.use('/api', apiRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/name', nameRouter);
+apiRouter.use('/contact', contactRouter);
 
 apiRouter.use('/docs', (req: Request, res: Response) => {
   res.json({
-    endpoints: [...authRouter.docs, ...nameRouter.docs],
+    endpoints: [...authRouter.docs, ...nameRouter.docs, ...contactRouter.docs],
   });
 });
 
