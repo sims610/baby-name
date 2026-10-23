@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import "./discover.css";
-import NameSwiper from "@/app/NameSwiper";
+import NameSwiper from "@/components/swipe/NameSwiper";
 import { Link } from "react-router";
 
 type Gender = "boy" | "girl" | "surprise";

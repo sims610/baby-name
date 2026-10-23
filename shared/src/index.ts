@@ -12,3 +12,11 @@ export interface FavoriteName {
   name: string;
   gender?: NameGender;
 }
+
+/** A name to show the user, with where it comes from and what it means. */
+export interface BabyName {
+  name: string;
+  gender: NameGender;
+  origin: string;
+  meaning: string;
+}

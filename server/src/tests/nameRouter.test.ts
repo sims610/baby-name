@@ -2,6 +2,7 @@ import { describe, expect, test } from '@jest/globals';
 import request from 'supertest';
 import app from '../service.ts';
 import { fakeAncestry } from '../database/fakeData.ts';
+import { nameInfo } from '../database/nameInfo.ts';
 
 // Names the endpoint can return: first names of the ancestors, skipping the user themself (ascendancy number 1).
 const ancestors = fakeAncestry.persons.filter((p) => p.display.ascendancyNumber !== '1');
@@ -44,6 +45,50 @@ describe('GET /api/name (generate a name)', () => {
       expect(res.body.gender).toBe('girl');
       expect(girlNames).toContain(res.body.name);
     }
+  });
+
+  test('includes the origin and meaning of the name', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({
+      name: res.body.name,
+      gender: res.body.gender,
+      ...nameInfo[res.body.name],
+    });
+  });
+});
+
+describe('GET /api/name/list (list names)', () => {
+  test('returns every girl name once when gender=girl', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/list?gender=girl').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.names.map((n: { name: string }) => n.name).sort()).toEqual([...new Set(girlNames)].sort());
+    for (const n of res.body.names) {
+      expect(n).toEqual({ name: n.name, gender: 'girl', ...nameInfo[n.name] });
+    }
+  });
+
+  test('returns boys and girls when gender is omitted', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/list').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.names).toHaveLength(new Set([...boyNames, ...girlNames]).size);
+  });
+
+  test('rejects an unknown gender', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/list?gender=other').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
   });
 });
 

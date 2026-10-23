@@ -1,95 +1,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import type { BabyName } from "shared";
+import { useAuth } from "@/auth/useAuth";
+import Notice from "@/components/common/Notice";
 import "./NameSwiper.css";
 
 export type Gender = "boy" | "girl" | "surprise";
-
-type BabyName = {
-  id: number;
-  name: string;
-  gender: "boy" | "girl" | "unisex";
-  origin: string;
-  meaning: string;
-};
 
 type NameSwiperProps = {
   gender: Gender;
   onChangePreference: () => void;
 };
-
-const mockNames: BabyName[] = [
-  {
-    id: 1,
-    name: "Oliver",
-    gender: "boy",
-    origin: "English",
-    meaning: "Olive tree",
-  },
-  {
-    id: 2,
-    name: "Charlotte",
-    gender: "girl",
-    origin: "French",
-    meaning: "Free woman",
-  },
-  {
-    id: 3,
-    name: "Theodore",
-    gender: "boy",
-    origin: "Greek",
-    meaning: "Gift of God",
-  },
-  {
-    id: 4,
-    name: "Amelia",
-    gender: "girl",
-    origin: "Germanic",
-    meaning: "Work or industrious",
-  },
-  {
-    id: 5,
-    name: "Noah",
-    gender: "boy",
-    origin: "Hebrew",
-    meaning: "Rest or comfort",
-  },
-  {
-    id: 6,
-    name: "Olivia",
-    gender: "girl",
-    origin: "Latin",
-    meaning: "Olive tree",
-  },
-  {
-    id: 7,
-    name: "Ethan",
-    gender: "boy",
-    origin: "Hebrew",
-    meaning: "Strong and enduring",
-  },
-  {
-    id: 8,
-    name: "Sophia",
-    gender: "girl",
-    origin: "Greek",
-    meaning: "Wisdom",
-  },
-  {
-    id: 9,
-    name: "Avery",
-    gender: "unisex",
-    origin: "English",
-    meaning: "Ruler of the elves",
-  },
-  {
-    id: 10,
-    name: "Riley",
-    gender: "unisex",
-    origin: "Irish",
-    meaning: "Courageous",
-  },
-];
 
 const SWIPE_THRESHOLD = 100;
 const ANIMATION_DURATION = 280;
@@ -98,13 +20,10 @@ export default function NameSwiper({
   gender,
   onChangePreference,
 }: NameSwiperProps) {
-  const names = mockNames.filter(
-    (name) =>
-      gender === "surprise" ||
-      name.gender === gender ||
-      name.gender === "unisex"
-  );
-
+  const { authRequest } = useAuth();
+  const [names, setNames] = useState<BabyName[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedNames, setLikedNames] = useState<BabyName[]>([]);
   const [passedNames, setPassedNames] = useState<BabyName[]>([]);
@@ -121,10 +40,36 @@ export default function NameSwiper({
     null
   );
 
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = gender === "surprise" ? "" : `?gender=${gender}`;
+
+    setLoading(true);
+    setError(null);
+
+    authRequest<{ names: BabyName[] }>(`/name/list${query}`, {
+      signal: controller.signal,
+    })
+      .then((data) => setNames(data.names))
+      .catch((err: unknown) => {
+        if (controller.signal.aborted) return;
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Couldn't load names. Please try again."
+        );
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [authRequest, gender]);
+
   const currentName = names[currentIndex];
   const nextName = names[currentIndex + 1];
 
-  const isFinished = currentIndex >= names.length;
+  const isFinished = !loading && !error && currentIndex >= names.length;
 
   const completeSwipe = (direction: "left" | "right") => {
     if (swipeLocked.current || !currentName) return;
@@ -292,7 +237,13 @@ export default function NameSwiper({
         </div>
       </div>
 
-      {!isFinished ? (
+      {loading ? (
+        <p className="swiper-instructions">Loading names…</p>
+      ) : error ? (
+        <Notice variant="error" title="Couldn't load names">
+          {error}
+        </Notice>
+      ) : !isFinished ? (
         <>
           <div className="swiper-progress">
             <span>
@@ -365,9 +316,7 @@ export default function NameSwiper({
 
               <div className="name-card-content">
                 <span className="name-card-label">
-                  {currentName.gender === "unisex"
-                    ? "Unisex Name"
-                    : currentName.gender === "boy"
+                  {currentName.gender === "boy"
                     ? "Boy Name"
                     : "Girl Name"}
                 </span>
@@ -460,7 +409,7 @@ export default function NameSwiper({
 
               <div className="favorite-name-list">
                 {likedNames.map((name) => (
-                  <span key={name.id}>
+                  <span key={name.name}>
                     ♡ {name.name}
                   </span>
                 ))}
