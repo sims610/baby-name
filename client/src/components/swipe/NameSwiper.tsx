@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import type { BabyName } from "shared";
+import { ApiError } from "@/api/client";
 import { useAuth } from "@/auth/useAuth";
 import Notice from "@/components/common/Notice";
 import "./NameSwiper.css";
@@ -24,6 +25,7 @@ export default function NameSwiper({
   const [names, setNames] = useState<BabyName[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedNames, setLikedNames] = useState<BabyName[]>([]);
   const [passedNames, setPassedNames] = useState<BabyName[]>([]);
@@ -71,10 +73,32 @@ export default function NameSwiper({
 
   const isFinished = !loading && !error && currentIndex >= names.length;
 
+  const saveFavorite = ({ name, gender }: BabyName) => {
+    setSaveError(null);
+
+    authRequest("/name", {
+      method: "POST",
+      body: { name, gender },
+    }).catch((err: unknown) => {
+      // 409 means it's already a favorite, which is what the user wanted anyway.
+      if (err instanceof ApiError && err.status === 409) return;
+      setSaveError(
+        `${name} wasn't saved to your favorites. ${
+          err instanceof Error ? err.message : ""
+        }`.trim()
+      );
+    });
+  };
+
   const completeSwipe = (direction: "left" | "right") => {
     if (swipeLocked.current || !currentName) return;
 
     swipeLocked.current = true;
+
+    if (direction === "right") {
+      saveFavorite(currentName);
+    }
+
     setDragging(false);
     setExitDirection(direction);
 
@@ -236,6 +260,10 @@ export default function NameSwiper({
           </button>
         </div>
       </div>
+
+      {saveError && (
+        <Notice variant="error">{saveError}</Notice>
+      )}
 
       {loading ? (
         <p className="swiper-instructions">Loading names…</p>
