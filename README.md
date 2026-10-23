@@ -47,6 +47,6 @@ Start the development servers:
 npm run dev
 ```
 
-Once it's running, open the local URL Vite prints in the terminal (usually http://localhost:5173).
+This starts the API server on http://localhost:3000 and the client together. Once it's running, open the local URL Vite prints in the terminal (usually http://localhost:5173). The client forwards `/api` requests to the server, and http://localhost:3000/api/docs lists the available endpoints.
 
-> **Note:** Only the client runs for now. The server hasn't been built yet, so you'll see a `No workspaces found: --workspace=server` error in the terminal. You can ignore it; the client still starts normally.
+> **Note:** The server keeps accounts and favorites in memory, so restarting it erases them and signs everyone out. Names currently come from sample family tree data rather than FamilySearch.
