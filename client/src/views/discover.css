@@ -27,6 +27,19 @@
   color: #829b57;
 }
 
+.discover-breadcrumb a {
+  color: #333333;
+  text-decoration: none;
+}
+
+.discover-breadcrumb a.discover-breadcrumb-current {
+  color: #829b57;
+}
+
+.discover-breadcrumb a:hover {
+  text-decoration: none;
+}
+
 /* Gender Selection */
 
 .gender-selection {

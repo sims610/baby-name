@@ -1,7 +1,10 @@
+
 .home {
   width: 100%;
   background: #ffffff;
 }
+
+/* Hero Section */
 
 .home__hero {
   width: 100%;
@@ -21,24 +24,38 @@
   box-sizing: border-box;
 }
 
+/* Baby Image */
+
 .home__hero-image {
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  min-height: 420px;
+  height: 420px;
+  min-width: 0;
   border-radius: 12px;
   background: #bccdd0;
-  color: #70878b;
-  font-size: 1rem;
-  font-weight: 500;
+  overflow: hidden;
+  box-sizing: border-box;
 }
+
+.home__baby-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* Hero Content */
 
 .home__hero-content {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 1rem;
+  min-width: 0;
 }
 
 .home__hero-content h1 {
@@ -58,6 +75,8 @@
   line-height: 1.6;
 }
 
+/* Discover Button */
+
 .home__discover-button {
   display: inline-flex;
   align-items: center;
@@ -73,7 +92,14 @@
   font-weight: 500;
   text-decoration: none;
   box-sizing: border-box;
+  transition: background-color 0.2s ease;
 }
+
+.home__discover-button:hover {
+  background: #bddb96;
+}
+
+/* How It Works */
 
 .home__how {
   width: 100%;
@@ -101,6 +127,8 @@
   color: #555555;
   font-size: 0.95rem;
 }
+
+/* Steps */
 
 .home__steps {
   display: grid;
@@ -138,6 +166,8 @@
   text-align: center;
 }
 
+/* Tablet / Mobile */
+
 @media (max-width: 760px) {
   .home__hero-inner {
     grid-template-columns: 1fr;
@@ -146,7 +176,7 @@
   }
 
   .home__hero-image {
-    min-height: 300px;
+    height: 300px;
   }
 
   .home__hero-content {
@@ -164,9 +194,11 @@
   }
 }
 
+/* Small Mobile */
+
 @media (max-width: 480px) {
   .home__hero-image {
-    min-height: 240px;
+    height: 240px;
   }
 
   .home__hero-content h1 {

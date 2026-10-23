@@ -26,7 +26,11 @@ export default function Home() {
       <section className="home__hero">
         <div className="home__hero-inner">
           <div className="home__hero-image">
-            <span>Baby Image</span>
+            <img
+              src="/LittleRoots_Home.png"
+              alt="Happy baby playing"
+              className="home__baby-image"
+            />
           </div>
 
           <div className="home__hero-content">
