@@ -1,7 +1,9 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
-import type { FavoriteName, NameGender, User } from 'shared';
+import type { BabyName, FavoriteName, NameGender, User } from 'shared';
 import { fakeAncestry } from './fakeData.ts';
+import type { AncestorPerson } from './fakeData.ts';
+import { nameInfo } from './nameInfo.ts';
 
 interface StoredUser extends User {
   passwordHash: string;
@@ -63,20 +65,44 @@ export function deleteSession(token: string): void {
 
 const favoritesByUser = new Map<string, FavoriteName[]>(); // user id -> favorites
 
-export function getRandomName(gender?: NameGender): { name: string; gender: NameGender } | null {
+function toBabyName(person: AncestorPerson): BabyName {
+  const name = person.display.name.split(' ')[0];
+  const info = nameInfo[name] ?? { origin: 'Unknown', meaning: 'Unknown' };
+  return {
+    name,
+    gender: person.display.gender === 'Male' ? 'boy' : 'girl',
+    ...info,
+  };
+}
+
+function ancestorsMatching(gender?: NameGender): AncestorPerson[] {
   const wanted = gender === 'boy' ? 'Male' : gender === 'girl' ? 'Female' : undefined;
   // Skip the user themself (ascendancy number 1), as notes.md describes for FamilySearch.
-  const matches = fakeAncestry.persons.filter(
+  return fakeAncestry.persons.filter(
     (p) => p.display.ascendancyNumber !== '1' && (!wanted || p.display.gender === wanted),
   );
+}
+
+export function getRandomName(gender?: NameGender): BabyName | null {
+  const matches = ancestorsMatching(gender);
   if (matches.length === 0) {
     return null;
   }
-  const pick = matches[Math.floor(Math.random() * matches.length)];
-  return {
-    name: pick.display.name.split(' ')[0],
-    gender: pick.display.gender === 'Male' ? 'boy' : 'girl',
-  };
+  return toBabyName(matches[Math.floor(Math.random() * matches.length)]);
+}
+
+/** Every matching name once, in random order, with duplicate first names removed. */
+export function listNames(gender?: NameGender): BabyName[] {
+  const seen = new Set<string>();
+  const names = ancestorsMatching(gender)
+    .map(toBabyName)
+    .filter((n) => !seen.has(n.name) && seen.add(n.name));
+  // Fisher-Yates shuffle so each visit to Discover starts somewhere different.
+  for (let i = names.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [names[i], names[j]] = [names[j], names[i]];
+  }
+  return names;
 }
 
 export function addFavorite(userId: string, favorite: FavoriteName): FavoriteName[] | null {
