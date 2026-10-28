@@ -4,6 +4,7 @@ import type { BabyName, ContactMessageInput, FavoriteName, NameGender, User } fr
 import { fakeAncestry } from './fakeData.ts';
 import type { AncestorPerson } from './fakeData.ts';
 import { nameInfo } from './nameInfo.ts';
+import type { WikiTreeSession } from '../wikitree.ts';
 
 interface StoredUser extends User {
   passwordHash: string;
@@ -119,6 +120,21 @@ export function addFavorite(userId: string, favorite: FavoriteName): FavoriteNam
 export function listFavorites(userId: string): FavoriteName[] {
   return favoritesByUser.get(userId) ?? [];
 }
+
+const wikiTreeSessionsByUser = new Map<string, WikiTreeSession>(); // user id -> WikiTree session
+
+export function setWikiTreeSession(userId: string, session: WikiTreeSession): void {
+  wikiTreeSessionsByUser.set(userId, session);
+}
+
+export function getWikiTreeSession(userId: string): WikiTreeSession | null {
+  return wikiTreeSessionsByUser.get(userId) ?? null;
+}
+
+export function deleteWikiTreeSession(userId: string): void {
+  wikiTreeSessionsByUser.delete(userId);
+}
+
 interface StoredContactMessage extends ContactMessageInput {
   id: string;
   userId?: string; // set when the sender was signed in

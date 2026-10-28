@@ -2,6 +2,8 @@
 import { useState } from "react";
 import "./discover.css";
 import NameSwiper from "@/components/swipe/NameSwiper";
+import WikiTreeLoginPrompt from "@/components/wikitree/WikiTreeLoginPrompt";
+import { useWikiTreeLogin } from "@/auth/useWikiTreeLogin";
 import { Link } from "react-router";
 
 type Gender = "boy" | "girl" | "surprise";
@@ -33,6 +35,8 @@ const genderOptions: {
 ];
 
 export default function Discover() {
+  const wikiTree = useWikiTreeLogin();
+
   const [selectedGender, setSelectedGender] =
     useState<Gender | null>(null);
 
@@ -58,6 +62,30 @@ export default function Discover() {
             Discover
           </Link>
         </nav>
+
+        {wikiTree.status === "checking" ? (
+          <p className="wikitree-status" role="status">
+            Checking your WikiTree sign-in…
+          </p>
+        ) : wikiTree.status === "signedOut" ? (
+          <WikiTreeLoginPrompt
+            error={wikiTree.error}
+            onLogin={wikiTree.login}
+          />
+        ) : (
+        <>
+        <p className="wikitree-status">
+          Signed in to WikiTree as{" "}
+          <strong>{wikiTree.user?.userName}</strong>
+          <span aria-hidden="true"> · </span>
+          <button
+            type="button"
+            className="wikitree-signout"
+            onClick={wikiTree.logout}
+          >
+            Sign out
+          </button>
+        </p>
 
         {!hasStarted ? (
           <section className="gender-selection">
@@ -133,6 +161,8 @@ export default function Discover() {
             onChangePreference={() => setHasStarted(false)}
         />
         ) : null}
+        </>
+        )}
       </div>
     </main>
   );

@@ -23,6 +23,9 @@
 | Generate name | unknown | GET /api/name | `getUserByToken` → sessions.get(token)<br>`getRandomName` → read fakeAncestry.persons (filter by gender) |
 | Save name as favorite | unknown | POST /api/name | `getUserByToken` → sessions.get(token)<br>`addFavorite` → favorites.get(userId), favorites.set(userId, [...]) |
 | View favorites | unknown | GET /api/name/favorites | `getUserByToken` → sessions.get(token)<br>`listFavorites` → favorites.get(userId) |
+| Sign in to WikiTree (redirect back to Discover) | discover.tsx, useWikiTreeLogin.ts | POST /api/wikitree/login | `confirmWikiTreeLogin` → WikiTree clientLogin(authcode)<br>`setWikiTreeSession` → wikiTreeSessions.set(userId, session) |
+| Check WikiTree sign-in on Discover | discover.tsx, useWikiTreeLogin.ts | GET /api/wikitree/session | `getWikiTreeSession` → wikiTreeSessions.get(userId)<br>`checkWikiTreeLogin` → WikiTree clientLogin(checkLogin) |
+| Sign out of WikiTree | discover.tsx, useWikiTreeLogin.ts | DELETE /api/wikitree/session | `deleteWikiTreeSession` → wikiTreeSessions.delete(userId)<br>`logoutWikiTree` → WikiTree clientLogin(doLogout) |
 
 **Database collections** (key-value, in memory in `server/src/database/database.ts`):
 
@@ -31,6 +34,7 @@
 | users | email (lowercased) | `{ id, name, email, passwordHash }` |
 | sessions | token | userId |
 | favorites | userId | `[{ name, gender? }]` |
+| wikiTreeSessions | userId | `{ userId, userName, cookies }` (WikiTree member + api.wikitree.com session cookies) |
 | fakeAncestry (read-only, `fakeData.ts`) | none | `{ persons: [{ id, display: { name, gender, ascendancyNumber } }] }` |
 
 ## FamilySearch API: Random Boy or Girl Name
