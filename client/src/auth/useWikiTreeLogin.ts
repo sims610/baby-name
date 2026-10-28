@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router";
 import type { WikiTreeUser } from "shared";
-import { wikiTreeLoginUrl, wikiTreeLogoutUrl } from "@/api/wikitree";
+import { logoutWikiTreeInBrowser, wikiTreeLoginUrl } from "@/api/wikitree";
 import { useAuth } from "@/auth/useAuth";
 
 export type WikiTreeLoginStatus = "checking" | "signedOut" | "signedIn";
@@ -77,11 +77,14 @@ export function useWikiTreeLogin(): WikiTreeLoginState {
   }, [pathname]);
 
   const logout = useCallback(() => {
-    // Forget the server's copy, then end the browser's own WikiTree session too.
-    authRequest("/wikitree/session", { method: "DELETE" })
-      .catch(() => undefined)
-      .finally(() => window.location.assign(wikiTreeLogoutUrl(`${window.location.origin}${pathname}`)));
-  }, [authRequest, pathname]);
+    // End the server's WikiTree session and the browser's, then show the sign-in
+    // prompt again in place. Failures are ignored: signing out shouldn't get stuck.
+    Promise.allSettled([authRequest("/wikitree/session", { method: "DELETE" }), logoutWikiTreeInBrowser()]).then(() => {
+      setUser(null);
+      setError(null);
+      setStatus("signedOut");
+    });
+  }, [authRequest]);
 
   return { status, user, error, login, logout };
 }

@@ -11,8 +11,14 @@ export function wikiTreeLoginUrl(returnUrl: string): string {
   return `${WIKITREE_API_URL}?${params}`;
 }
 
-/** URL that ends the browser's WikiTree session, then returns to `returnUrl`. */
-export function wikiTreeLogoutUrl(returnUrl: string): string {
-  const params = new URLSearchParams({ action: "clientLogin", doLogout: "1", returnURL: returnUrl, appId: WIKITREE_APP_ID });
-  return `${WIKITREE_API_URL}?${params}`;
+/**
+ * Asks WikiTree to end the browser's own session, without leaving the page.
+ * WikiTree ignores `returnURL` on logout and just shows `[{"status":"Ok"}]`, so we
+ * don't navigate there. The response is opaque (no CORS for our origin), which is
+ * fine: we only need the request sent. Best effort, since browsers may withhold
+ * WikiTree's cookies from a cross-site request.
+ */
+export async function logoutWikiTreeInBrowser(): Promise<void> {
+  const params = new URLSearchParams({ action: "clientLogin", doLogout: "1", appId: WIKITREE_APP_ID });
+  await fetch(`${WIKITREE_API_URL}?${params}`, { mode: "no-cors", credentials: "include" });
 }
