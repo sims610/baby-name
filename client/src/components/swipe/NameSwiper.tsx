@@ -9,8 +9,12 @@ import "./NameSwiper.css";
 
 export type Gender = "boy" | "girl" | "surprise";
 
+/** Where names come from: sample data, or the user's WikiTree ancestors. */
+export type NameSource = "demo" | "wikitree";
+
 type NameSwiperProps = {
   gender: Gender;
+  source: NameSource;
   onChangePreference: () => void;
 };
 
@@ -19,6 +23,7 @@ const ANIMATION_DURATION = 280;
 
 export default function NameSwiper({
   gender,
+  source,
   onChangePreference,
 }: NameSwiperProps) {
   const { authRequest } = useAuth();
@@ -44,7 +49,9 @@ export default function NameSwiper({
 
   useEffect(() => {
     const controller = new AbortController();
-    const query = gender === "surprise" ? "" : `?gender=${gender}`;
+    const params = new URLSearchParams({ source });
+    if (gender !== "surprise") params.set("gender", gender);
+    const query = `?${params}`;
 
     setLoading(true);
     setError(null);
@@ -66,7 +73,7 @@ export default function NameSwiper({
       });
 
     return () => controller.abort();
-  }, [authRequest, gender]);
+  }, [authRequest, gender, source]);
 
   const currentName = names[currentIndex];
   const nextName = names[currentIndex + 1];
@@ -266,10 +273,20 @@ export default function NameSwiper({
       )}
 
       {loading ? (
-        <p className="swiper-instructions">Loading names…</p>
+        <p className="swiper-instructions">
+          {source === "wikitree"
+            ? "Gathering names from your family tree…"
+            : "Loading names…"}
+        </p>
       ) : error ? (
         <Notice variant="error" title="Couldn't load names">
           {error}
+        </Notice>
+      ) : names.length === 0 ? (
+        <Notice variant="info" title="No names yet">
+          {source === "wikitree"
+            ? "We couldn't find any ancestor names in your WikiTree tree yet. Add parents or grandparents on WikiTree, or try Demo mode."
+            : "No names match this preference."}
         </Notice>
       ) : !isFinished ? (
         <>

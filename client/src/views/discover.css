@@ -14,13 +14,85 @@
 
 /* Breadcrumb */
 
+.discover-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 65px;
+}
+
 .discover-breadcrumb {
   display: flex;
   gap: 12px;
   align-items: center;
   font-size: 15px;
   color: #333;
-  margin-bottom: 65px;
+}
+
+/* Demo Mode Toggle */
+
+.demo-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  border: none;
+  background: none;
+  color: #333;
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.demo-toggle:focus-visible {
+  outline: 3px solid #829b57;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.demo-toggle-track {
+  position: relative;
+  flex-shrink: 0;
+  width: 42px;
+  height: 24px;
+  border-radius: 12px;
+  background-color: #e3e3e3;
+  transition: background-color 0.2s ease;
+}
+
+.demo-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background-color: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s ease;
+}
+
+.demo-toggle[aria-checked="true"] .demo-toggle-track {
+  background-color: #829b57;
+}
+
+.demo-toggle[aria-checked="true"] .demo-toggle-thumb {
+  transform: translateX(18px);
+}
+
+.demo-toggle-label {
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.demo-toggle-hint {
+  font-size: 12px;
+  font-weight: 400;
+  color: #999;
 }
 
 .discover-breadcrumb-current {
@@ -280,7 +352,7 @@
     padding: 30px 20px 70px;
   }
 
-  .discover-breadcrumb {
+  .discover-topbar {
     margin-bottom: 45px;
   }
 

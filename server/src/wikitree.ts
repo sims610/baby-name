@@ -28,20 +28,21 @@ function toCookieHeader(setCookies: string[]): string {
     .join('; ');
 }
 
-async function clientLogin(
-  params: Record<string, string>,
-  cookies = '',
-): Promise<{ data: ClientLoginResponse; cookies: string }> {
+async function wikiTreePost<T>(params: Record<string, string>, cookies = ''): Promise<{ data: T; cookies: string }> {
   const response = await fetch(WIKITREE_API_URL, {
     method: 'POST',
     headers: cookies ? { Cookie: cookies } : {},
-    body: new URLSearchParams({ action: 'clientLogin', appId: WIKITREE_APP_ID, ...params }),
+    body: new URLSearchParams({ appId: WIKITREE_APP_ID, ...params }),
   });
   if (!response.ok) {
     throw new Error(`WikiTree responded with ${response.status}`);
   }
-  const data = (await response.json()) as ClientLoginResponse;
+  const data = (await response.json()) as T;
   return { data, cookies: toCookieHeader(response.headers.getSetCookie()) };
+}
+
+function clientLogin(params: Record<string, string>, cookies = '') {
+  return wikiTreePost<ClientLoginResponse>({ action: 'clientLogin', ...params }, cookies);
 }
 
 /** Exchanges the one-time authcode WikiTree sent back for the member and their session, or null if rejected. */
@@ -58,6 +59,56 @@ export async function confirmWikiTreeLogin(authcode: string): Promise<WikiTreeSe
 export async function checkWikiTreeLogin(session: WikiTreeSession): Promise<boolean> {
   const { data } = await clientLogin({ checkLogin: String(session.userId) }, session.cookies);
   return data.clientLogin?.result === 'ok';
+}
+
+// See https://github.com/wikitree/wikitree-api/blob/main/getPeople.md
+const ANCESTOR_GENERATIONS = 10;
+const PAGE_LIMIT = 1000;
+const MAX_PAGES = 3;
+
+interface GetPeopleResponse {
+  status?: string;
+  people?: Record<string, { FirstName?: string; RealName?: string; Gender?: string; Meta?: { Degrees?: number } }>;
+}
+
+/** One profile from the member's tree. `degrees` is the generation: 0 is the member, 1 a parent. */
+export interface WikiTreeAncestor {
+  firstName?: string;
+  realName?: string;
+  gender?: string;
+  degrees: number;
+}
+
+/** The member and their direct ancestors, fetched as one batch (paged when the tree is large). */
+export async function fetchWikiTreeAncestors(session: WikiTreeSession): Promise<WikiTreeAncestor[]> {
+  const ancestors = new Map<string, WikiTreeAncestor>();
+  for (let page = 0; page < MAX_PAGES; page++) {
+    const { data } = await wikiTreePost<GetPeopleResponse[]>(
+      {
+        action: 'getPeople',
+        keys: session.userName,
+        ancestors: String(ANCESTOR_GENERATIONS),
+        fields: 'Id,FirstName,RealName,Gender,Meta',
+        limit: String(PAGE_LIMIT),
+        start: String(page * PAGE_LIMIT),
+      },
+      session.cookies,
+    );
+    const result = data[0];
+    if (!result || result.status) {
+      throw new Error(`WikiTree getPeople failed: ${result?.status ?? 'empty response'}`);
+    }
+    const people = Object.entries(result.people ?? {});
+    for (const [id, p] of people) {
+      ancestors.set(id, { firstName: p.FirstName, realName: p.RealName, gender: p.Gender, degrees: p.Meta?.Degrees ?? 0 });
+    }
+    // The member is returned on every page; only their relatives count toward the limit.
+    const related = people.filter(([, p]) => (p.Meta?.Degrees ?? 0) > 0).length;
+    if (related < PAGE_LIMIT) {
+      break;
+    }
+  }
+  return [...ancestors.values()];
 }
 
 /** Ends the WikiTree session held by the server. */
