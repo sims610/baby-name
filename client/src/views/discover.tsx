@@ -2,6 +2,8 @@
 import { useState } from "react";
 import "./discover.css";
 import NameSwiper from "@/components/swipe/NameSwiper";
+import WikiTreeLoginPrompt from "@/components/wikitree/WikiTreeLoginPrompt";
+import { useWikiTreeLogin } from "@/auth/useWikiTreeLogin";
 import { Link } from "react-router";
 
 type Gender = "boy" | "girl" | "surprise";
@@ -32,7 +34,31 @@ const genderOptions: {
   },
 ];
 
+// Remembered per browser. Uses the app's "littleroots." prefix, so logging out clears it.
+const DEMO_MODE_KEY = "littleroots.demoMode";
+
+function readDemoMode(): boolean {
+  try {
+    return localStorage.getItem(DEMO_MODE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeDemoMode(on: boolean): void {
+  try {
+    localStorage.setItem(DEMO_MODE_KEY, on ? "1" : "0");
+  } catch {
+    // Ignore: demo mode still applies for this visit.
+  }
+}
+
 export default function Discover() {
+  // Keeps running in demo mode too, so a WikiTree sign-in redirect still completes.
+  const wikiTree = useWikiTreeLogin();
+
+  const [demoMode, setDemoMode] = useState(readDemoMode);
+
   const [selectedGender, setSelectedGender] =
     useState<Gender | null>(null);
 
@@ -44,20 +70,73 @@ export default function Discover() {
     setHasStarted(true);
   };
 
+  const toggleDemoMode = () => {
+    const next = !demoMode;
+    setDemoMode(next);
+    writeDemoMode(next);
+    setHasStarted(false);
+  };
+
   return (
     <main className="discover-page">
       <div className="discover-container">
-        <nav className="discover-breadcrumb">
-          <Link to="/">Home</Link>
-          <span className="discover-breadcrumb-separator">/</span>
-          <Link
-            to="/discover"
-            className="discover-breadcrumb-current"
-            aria-current="page"
+        <div className="discover-topbar">
+          <nav className="discover-breadcrumb">
+            <Link to="/">Home</Link>
+            <span className="discover-breadcrumb-separator">/</span>
+            <Link
+              to="/discover"
+              className="discover-breadcrumb-current"
+              aria-current="page"
+            >
+              Discover
+            </Link>
+          </nav>
+
+          <button
+            type="button"
+            role="switch"
+            aria-checked={demoMode}
+            className="demo-toggle"
+            onClick={toggleDemoMode}
           >
-            Discover
-          </Link>
-        </nav>
+            <span className="demo-toggle-track" aria-hidden="true">
+              <span className="demo-toggle-thumb" />
+            </span>
+            <span className="demo-toggle-label">
+              Demo mode
+              <span className="demo-toggle-hint">
+                Sample names, no WikiTree sign-in
+              </span>
+            </span>
+          </button>
+        </div>
+
+        {!demoMode && wikiTree.status === "checking" ? (
+          <p className="wikitree-status" role="status">
+            Checking your WikiTree sign-in…
+          </p>
+        ) : !demoMode && wikiTree.status === "signedOut" ? (
+          <WikiTreeLoginPrompt
+            error={wikiTree.error}
+            onLogin={wikiTree.login}
+          />
+        ) : (
+        <>
+        {!demoMode && (
+          <p className="wikitree-status">
+            Signed in to WikiTree as{" "}
+            <strong>{wikiTree.user?.userName}</strong>
+            <span aria-hidden="true"> · </span>
+            <button
+              type="button"
+              className="wikitree-signout"
+              onClick={wikiTree.logout}
+            >
+              Sign out
+            </button>
+          </p>
+        )}
 
         {!hasStarted ? (
           <section className="gender-selection">
@@ -130,9 +209,12 @@ export default function Discover() {
         ) : selectedGender ? (
         <NameSwiper
             gender={selectedGender}
+            source={demoMode ? "demo" : "wikitree"}
             onChangePreference={() => setHasStarted(false)}
         />
         ) : null}
+        </>
+        )}
       </div>
     </main>
   );

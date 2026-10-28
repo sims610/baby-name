@@ -1,9 +1,9 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import type { BabyName, ContactMessageInput, FavoriteName, NameGender, User } from 'shared';
-import { fakeAncestry } from './fakeData.ts';
-import type { AncestorPerson } from './fakeData.ts';
 import { nameInfo } from './nameInfo.ts';
+import type { NameCandidate } from '../names.ts';
+import type { WikiTreeSession } from '../wikitree.ts';
 
 interface StoredUser extends User {
   passwordHash: string;
@@ -65,26 +65,17 @@ export function deleteSession(token: string): void {
 
 const favoritesByUser = new Map<string, FavoriteName[]>(); // user id -> favorites
 
-function toBabyName(person: AncestorPerson): BabyName {
-  const name = person.display.name.split(' ')[0];
+function toBabyName({ name, gender }: NameCandidate): BabyName {
   const info = nameInfo[name] ?? { origin: 'Unknown', meaning: 'Unknown' };
-  return {
-    name,
-    gender: person.display.gender === 'Male' ? 'boy' : 'girl',
-    ...info,
-  };
+  return { name, gender, ...info };
 }
 
-function ancestorsMatching(gender?: NameGender): AncestorPerson[] {
-  const wanted = gender === 'boy' ? 'Male' : gender === 'girl' ? 'Female' : undefined;
-  // Skip the user themself (ascendancy number 1), as notes.md describes for FamilySearch.
-  return fakeAncestry.persons.filter(
-    (p) => p.display.ascendancyNumber !== '1' && (!wanted || p.display.gender === wanted),
-  );
+function candidatesMatching(candidates: NameCandidate[], gender?: NameGender): NameCandidate[] {
+  return gender ? candidates.filter((c) => c.gender === gender) : candidates;
 }
 
-export function getRandomName(gender?: NameGender): BabyName | null {
-  const matches = ancestorsMatching(gender);
+export function getRandomName(candidates: NameCandidate[], gender?: NameGender): BabyName | null {
+  const matches = candidatesMatching(candidates, gender);
   if (matches.length === 0) {
     return null;
   }
@@ -92,9 +83,9 @@ export function getRandomName(gender?: NameGender): BabyName | null {
 }
 
 /** Every matching name once, in random order, with duplicate first names removed. */
-export function listNames(gender?: NameGender): BabyName[] {
+export function listNames(candidates: NameCandidate[], gender?: NameGender): BabyName[] {
   const seen = new Set<string>();
-  const names = ancestorsMatching(gender)
+  const names = candidatesMatching(candidates, gender)
     .map(toBabyName)
     .filter((n) => !seen.has(n.name) && seen.add(n.name));
   // Fisher-Yates shuffle so each visit to Discover starts somewhere different.
@@ -119,6 +110,40 @@ export function addFavorite(userId: string, favorite: FavoriteName): FavoriteNam
 export function listFavorites(userId: string): FavoriteName[] {
   return favoritesByUser.get(userId) ?? [];
 }
+
+const wikiTreeSessionsByUser = new Map<string, WikiTreeSession>(); // user id -> WikiTree session
+
+// Names pulled from each user's WikiTree tree, so Discover doesn't refetch the batch every visit.
+const WIKITREE_NAMES_TTL_MS = 60 * 60 * 1000;
+const wikiTreeNamesByUser = new Map<string, { fetchedAt: number; candidates: NameCandidate[] }>(); // user id -> names
+
+export function setWikiTreeSession(userId: string, session: WikiTreeSession): void {
+  wikiTreeSessionsByUser.set(userId, session);
+  wikiTreeNamesByUser.delete(userId);
+}
+
+export function getWikiTreeSession(userId: string): WikiTreeSession | null {
+  return wikiTreeSessionsByUser.get(userId) ?? null;
+}
+
+export function deleteWikiTreeSession(userId: string): void {
+  wikiTreeSessionsByUser.delete(userId);
+  wikiTreeNamesByUser.delete(userId);
+}
+
+/** The user's cached WikiTree names, or null if none were fetched in the last hour. */
+export function getWikiTreeNames(userId: string): NameCandidate[] | null {
+  const cached = wikiTreeNamesByUser.get(userId);
+  if (!cached || Date.now() - cached.fetchedAt > WIKITREE_NAMES_TTL_MS) {
+    return null;
+  }
+  return cached.candidates;
+}
+
+export function setWikiTreeNames(userId: string, candidates: NameCandidate[]): void {
+  wikiTreeNamesByUser.set(userId, { fetchedAt: Date.now(), candidates });
+}
+
 interface StoredContactMessage extends ContactMessageInput {
   id: string;
   userId?: string; // set when the sender was signed in

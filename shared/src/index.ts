@@ -21,6 +21,12 @@ export interface BabyName {
   meaning: string;
 }
 
+/** The WikiTree member a user connected through WikiTree's clientLogin flow. */
+export interface WikiTreeUser {
+  userId: number;
+  userName: string;
+}
+
 /** What a visitor submits through the Contact form. */
 export interface ContactMessageInput {
   name: string;

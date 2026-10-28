@@ -3,6 +3,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { authRouter, setAuthUser } from './routes/authRouter.ts';
 import { nameRouter } from './routes/nameRouter.ts';
 import { contactRouter } from './routes/contactRouter.ts';
+import { wikitreeRouter } from './routes/wikitreeRouter.ts';
 
 interface HttpError extends Error {
   statusCode?: number;
@@ -24,10 +25,11 @@ app.use('/api', apiRouter);
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/name', nameRouter);
 apiRouter.use('/contact', contactRouter);
+apiRouter.use('/wikitree', wikitreeRouter);
 
 apiRouter.use('/docs', (req: Request, res: Response) => {
   res.json({
-    endpoints: [...authRouter.docs, ...nameRouter.docs, ...contactRouter.docs],
+    endpoints: [...authRouter.docs, ...nameRouter.docs, ...contactRouter.docs, ...wikitreeRouter.docs],
   });
 });
 

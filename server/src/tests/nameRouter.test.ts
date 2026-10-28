@@ -1,4 +1,4 @@
-import { describe, expect, test } from '@jest/globals';
+import { afterEach, describe, expect, jest, test } from '@jest/globals';
 import request from 'supertest';
 import app from '../service.ts';
 import { fakeAncestry } from '../database/fakeData.ts';
@@ -154,5 +154,123 @@ describe('GET /api/name/favorites (list favorites)', () => {
     });
     expect(bobList.status).toBe(200);
     expect(bobList.body).toEqual({ favorites: [{ name: 'Clara', gender: 'girl' }] });
+  });
+});
+
+describe('GET /api/name/list?source=wikitree (names from the WikiTree tree)', () => {
+  // Stands in for api.wikitree.com: each call returns the next queued response.
+  function mockWikiTree(...bodies: unknown[]) {
+    const fetchMock = jest.spyOn(globalThis, 'fetch');
+    for (const body of bodies) {
+      fetchMock.mockResolvedValueOnce(
+        new Response(JSON.stringify(body), {
+          headers: { 'Content-Type': 'application/json', 'Set-Cookie': 'wikidb_wtb__session=abc; path=/' },
+        }),
+      );
+    }
+    return fetchMock;
+  }
+
+  // A getPeople response: the member (Degrees 0) plus the given ancestors.
+  function people(...ancestors: { FirstName: string; Gender: string; Degrees?: number }[]) {
+    const byId: Record<string, unknown> = { 1: { Id: 1, FirstName: 'Jordan', Gender: 'Male', Meta: { Degrees: 0 } } };
+    ancestors.forEach(({ FirstName, Gender, Degrees = 1 }, i) => {
+      byId[i + 2] = { Id: i + 2, FirstName, Gender, Meta: { Degrees } };
+    });
+    return [{ status: '', people: byId }];
+  }
+
+  async function connectWikiTree(token: string) {
+    mockWikiTree({ clientLogin: { result: 'Success', userid: 42, username: 'Smith-1' } });
+    await request(app)
+      .post('/api/wikitree/login')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ authcode: 'code123' })
+      .expect(200);
+  }
+
+  const listWikiTree = (token: string, query = '') =>
+    request(app).get(`/api/name/list?source=wikitree${query}`).set('Authorization', `Bearer ${token}`);
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('returns the cleaned names from the tree, skipping the member', async () => {
+    const token = await registerUser();
+    await connectWikiTree(token);
+    const fetchMock = mockWikiTree(
+      people({ FirstName: 'WILLIAM', Gender: 'Male' }, { FirstName: 'Virginia', Gender: 'Female' }, { FirstName: 'Unknown', Gender: 'Female' }),
+    );
+
+    const res = await listWikiTree(token);
+
+    expect(res.status).toBe(200);
+    expect(res.body.names.map((n: { name: string }) => n.name).sort()).toEqual(['Virginia', 'William']);
+    const sent = fetchMock.mock.lastCall![1]!.body as URLSearchParams;
+    expect(sent.get('action')).toBe('getPeople');
+    expect(sent.get('keys')).toBe('Smith-1');
+    expect(sent.get('ancestors')).toBe('10');
+  });
+
+  test('filters by gender', async () => {
+    const token = await registerUser();
+    await connectWikiTree(token);
+    mockWikiTree(people({ FirstName: 'William', Gender: 'Male' }, { FirstName: 'Virginia', Gender: 'Female' }));
+
+    const res = await listWikiTree(token, '&gender=girl');
+
+    expect(res.body.names).toEqual([{ name: 'Virginia', gender: 'girl', origin: 'Unknown', meaning: 'Unknown' }]);
+  });
+
+  test('fetches the tree once and reuses it', async () => {
+    const token = await registerUser();
+    await connectWikiTree(token);
+    const fetchMock = mockWikiTree(people({ FirstName: 'William', Gender: 'Male' }));
+    const callsBefore = fetchMock.mock.calls.length;
+
+    await listWikiTree(token).expect(200);
+    const again = await listWikiTree(token);
+
+    expect(again.body.names.map((n: { name: string }) => n.name)).toEqual(['William']);
+    expect(fetchMock.mock.calls.length - callsBefore).toBe(1);
+  });
+
+  test('asks for the next page when a page comes back full', async () => {
+    const token = await registerUser();
+    await connectWikiTree(token);
+    const fullPage = people(...Array.from({ length: 1000 }, () => ({ FirstName: 'William', Gender: 'Male' })));
+    const fetchMock = mockWikiTree(fullPage, people({ FirstName: 'Virginia', Gender: 'Female' }));
+
+    const res = await listWikiTree(token);
+
+    expect(res.status).toBe(200);
+    expect((fetchMock.mock.lastCall![1]!.body as URLSearchParams).get('start')).toBe('1000');
+  });
+
+  test('requires a WikiTree sign-in', async () => {
+    const token = await registerUser();
+
+    const res = await listWikiTree(token);
+
+    expect(res.status).toBe(403);
+  });
+
+  test('reports when WikiTree fails', async () => {
+    const token = await registerUser();
+    await connectWikiTree(token);
+    mockWikiTree([{ status: 'Illegal key' }]);
+
+    const res = await listWikiTree(token);
+
+    expect(res.status).toBe(502);
+  });
+
+  test('rejects an unknown source', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/list?source=other').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
   });
 });
