@@ -96,7 +96,7 @@ export default function UserLogin({ onLoggedIn, notice, imageSrc, imageAlt }: Us
   return (
     <AuthSplitLayout
       title="Account Login"
-      subtitle="If you are already a member you can login with your email address and password"
+      subtitle="If you are already a member you can login with your email address and password."
       imageSrc={imageSrc}
       imageAlt={imageAlt}
     >

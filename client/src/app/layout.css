@@ -138,8 +138,9 @@
 
 .user-menu__item {
   display: block;
+  box-sizing: border-box;
   width: 100%;
-  margin-top: 0.35rem;
+  text-decoration: none;
   padding: 0.5rem 0.9rem;
   border: none;
   background: none;
@@ -147,6 +148,10 @@
   color: var(--lr-text);
   text-align: left;
   cursor: pointer;
+}
+
+.user-menu__info + .user-menu__item {
+  margin-top: 0.35rem;
 }
 
 .user-menu__item:hover {

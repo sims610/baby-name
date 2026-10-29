@@ -1,0 +1,276 @@
+.name-detail-page {
+  min-height: 75vh;
+  background-color: #ffffff;
+  color: #292929;
+  font-family: inherit;
+}
+
+.name-detail-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 45px 24px 80px;
+}
+
+.name-detail-container .page-topbar {
+  margin-bottom: 40px;
+}
+
+.name-detail-notice {
+  max-width: 640px;
+  margin: 0 auto 24px;
+}
+
+.name-detail-muted {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #888;
+}
+
+/* Two columns: the name on the left, its story on the right. */
+.name-detail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 380px) minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+
+.name-detail-side {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Name card */
+
+.name-detail-hero {
+  position: sticky;
+  top: 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 28px 32px;
+  border: 1px solid #ececec;
+  border-top: 5px solid var(--theme-border);
+  border-radius: 22px;
+  text-align: center;
+}
+
+.name-detail-gender {
+  padding: 6px 16px;
+  border-radius: 30px;
+  background: var(--theme-tint);
+  color: var(--theme-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.name-detail-hero h1 {
+  margin: 18px 0 6px;
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: #302b28;
+  overflow-wrap: anywhere;
+}
+
+.name-detail-origin {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: #888;
+}
+
+.name-detail-status {
+  margin: 0 0 22px;
+  font-size: 13px;
+  color: var(--theme-ink);
+}
+
+.name-detail-roots {
+  width: 100%;
+  margin: 0 0 22px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--theme-soft);
+  text-align: left;
+}
+
+.name-detail-roots-label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--theme-accent);
+}
+
+.name-detail-roots ul {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.name-detail-roots li {
+  display: flex;
+  flex-direction: column;
+}
+
+.name-detail-roots strong {
+  font-size: 15px;
+  color: #302b28;
+}
+
+.name-detail-roots li span {
+  font-size: 12px;
+  color: #777;
+}
+
+.name-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Cards */
+
+.name-detail-card {
+  padding: 26px 28px;
+  border: 1px solid #ececec;
+  border-radius: 22px;
+}
+
+.name-detail-card h2 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #241f1f;
+}
+
+.name-detail-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px 22px;
+  margin: 0;
+}
+
+.name-detail-facts dt {
+  padding-top: 3px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #a3a3a3;
+}
+
+.name-detail-facts dd {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.7;
+  color: #444;
+}
+
+/* Say it out loud */
+
+.name-detail-try-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.name-detail-try-header h2 {
+  margin: 0;
+}
+
+.name-detail-field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #777;
+}
+
+.name-detail-field input {
+  width: 170px;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #dcdcdc;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: #292929;
+}
+
+.name-detail-field input:focus-visible {
+  outline: 3px solid #829b57;
+  outline-offset: 1px;
+}
+
+.name-detail-preview {
+  padding: 18px 22px;
+  border-radius: 14px;
+  background: var(--theme-soft);
+  text-align: center;
+}
+
+.name-detail-print {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 600;
+  color: #302b28;
+  overflow-wrap: anywhere;
+}
+
+.name-detail-cursive {
+  margin: 4px 0 6px;
+  font-family: "Dancing Script", cursive;
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--theme-ink);
+  overflow-wrap: anywhere;
+}
+
+.name-detail-initials {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 1px;
+  color: #999;
+}
+
+@media (max-width: 860px) {
+  .name-detail-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .name-detail-hero {
+    position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .name-detail-container {
+    padding: 30px 20px 60px;
+  }
+
+  .name-detail-hero h1 {
+    font-size: 42px;
+  }
+
+  .name-detail-card {
+    padding: 22px 20px;
+  }
+
+  .name-detail-cursive {
+    font-size: 36px;
+  }
+}

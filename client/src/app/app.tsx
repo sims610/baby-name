@@ -15,6 +15,9 @@ const ContactView = lazy(() => import("@/views/contact"));
 const DiscoverView = lazy(() => import("@/views/discover"));
 const FavoritesView = lazy(() => import("@/views/FavoritesView"));
 const MatchesView = lazy(() => import("@/views/MatchesView"));
+const DashboardView = lazy(() => import("@/views/DashboardView"));
+const NameDetailView = lazy(() => import("@/views/NameDetailView"));
+const SearchView = lazy(() => import("@/views/SearchView"));
 
 const routes: RouteObject[] = [
   {
@@ -30,10 +33,13 @@ const routes: RouteObject[] = [
       {
         element: <RequireAuth />,
         children: [
+          { path: "dashboard", element: <DashboardView /> },
           { path: "discover", element: <DiscoverView /> },
-          // Coming-soon placeholders until these features are built.
+          // Matches is a demo-mode preview until partner linking is built.
           { path: "favorites", element: <FavoritesView /> },
           { path: "matches", element: <MatchesView /> },
+          { path: "names/:name", element: <NameDetailView /> },
+          { path: "search", element: <SearchView /> },
         ],
       },
       { path: "contact", element: <ContactView /> },

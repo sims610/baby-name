@@ -1,0 +1,31 @@
+.page-topbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 65px;
+}
+
+.page-breadcrumb {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  font-size: 15px;
+  color: #333;
+}
+
+.page-breadcrumb a {
+  color: #333333;
+  text-decoration: none;
+}
+
+.page-breadcrumb a.page-breadcrumb-current {
+  color: #829b57;
+}
+
+@media (max-width: 768px) {
+  .page-topbar {
+    margin-bottom: 45px;
+  }
+}

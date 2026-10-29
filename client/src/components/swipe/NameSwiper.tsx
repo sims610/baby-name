@@ -240,7 +240,7 @@ export default function NameSwiper({
       : "All Names";
 
   return (
-    <section className="name-swiper">
+    <section className={`name-swiper theme-${gender}`}>
       <div className="swiper-header">
         <span className="swiper-eyebrow">
           DISCOVER YOUR FAVORITES
@@ -360,7 +360,9 @@ export default function NameSwiper({
               )}
 
               <div className="name-card-content">
-                <span className="name-card-label">
+                <span
+                  className={`name-card-label theme-${currentName.gender}`}
+                >
                   {currentName.gender === "boy"
                     ? "Boy Name"
                     : "Girl Name"}
@@ -454,7 +456,10 @@ export default function NameSwiper({
 
               <div className="favorite-name-list">
                 {likedNames.map((name) => (
-                  <span key={name.name}>
+                  <span
+                    key={name.name}
+                    className={`theme-${name.gender}`}
+                  >
                     ♡ {name.name}
                   </span>
                 ))}

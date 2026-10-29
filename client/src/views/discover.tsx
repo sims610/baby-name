@@ -4,6 +4,8 @@ import "./discover.css";
 import NameSwiper from "@/components/swipe/NameSwiper";
 import WikiTreeLoginPrompt from "@/components/wikitree/WikiTreeLoginPrompt";
 import { useWikiTreeLogin } from "@/auth/useWikiTreeLogin";
+import { useDemoMode } from "@/auth/useDemoMode";
+import DemoModeToggle from "@/components/common/DemoModeToggle";
 import { Link } from "react-router";
 
 type Gender = "boy" | "girl" | "surprise";
@@ -34,30 +36,11 @@ const genderOptions: {
   },
 ];
 
-// Remembered per browser. Uses the app's "littleroots." prefix, so logging out clears it.
-const DEMO_MODE_KEY = "littleroots.demoMode";
-
-function readDemoMode(): boolean {
-  try {
-    return localStorage.getItem(DEMO_MODE_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
-
-function writeDemoMode(on: boolean): void {
-  try {
-    localStorage.setItem(DEMO_MODE_KEY, on ? "1" : "0");
-  } catch {
-    // Ignore: demo mode still applies for this visit.
-  }
-}
-
 export default function Discover() {
   // Keeps running in demo mode too, so a WikiTree sign-in redirect still completes.
   const wikiTree = useWikiTreeLogin();
 
-  const [demoMode, setDemoMode] = useState(readDemoMode);
+  const [demoMode, setDemoMode] = useDemoMode();
 
   const [selectedGender, setSelectedGender] =
     useState<Gender | null>(null);
@@ -70,10 +53,8 @@ export default function Discover() {
     setHasStarted(true);
   };
 
-  const toggleDemoMode = () => {
-    const next = !demoMode;
-    setDemoMode(next);
-    writeDemoMode(next);
+  const changeDemoMode = (on: boolean) => {
+    setDemoMode(on);
     setHasStarted(false);
   };
 
@@ -93,23 +74,11 @@ export default function Discover() {
             </Link>
           </nav>
 
-          <button
-            type="button"
-            role="switch"
-            aria-checked={demoMode}
-            className="demo-toggle"
-            onClick={toggleDemoMode}
-          >
-            <span className="demo-toggle-track" aria-hidden="true">
-              <span className="demo-toggle-thumb" />
-            </span>
-            <span className="demo-toggle-label">
-              Demo mode
-              <span className="demo-toggle-hint">
-                Sample names, no WikiTree sign-in
-              </span>
-            </span>
-          </button>
+          <DemoModeToggle
+            on={demoMode}
+            onChange={changeDemoMode}
+            hint="Sample names, no WikiTree sign-in"
+          />
         </div>
 
         {!demoMode && wikiTree.status === "checking" ? (
@@ -163,7 +132,7 @@ export default function Discover() {
                 <button
                   key={option.value}
                   type="button"
-                  className={`gender-card ${
+                  className={`gender-card theme-${option.value} ${
                     selectedGender === option.value
                       ? "selected"
                       : ""
@@ -194,7 +163,9 @@ export default function Discover() {
 
             <button
               type="button"
-              className="discover-start-btn"
+              className={`discover-start-btn theme-${
+                selectedGender ?? "default"
+              }`}
               onClick={handleStart}
               disabled={!selectedGender}
             >

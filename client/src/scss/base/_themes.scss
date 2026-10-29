@@ -1,0 +1,47 @@
+// Pastel color themes. Gender colors mean gender only: boy is sky blue, girl is
+// pink, and "surprise" (either) shares the app's default green. Add `theme-boy`,
+// `theme-girl`, `theme-surprise` or `theme-default` to an element and style its
+// children with the `--theme-*` custom properties.
+//
+//   --theme-soft          page-tint backgrounds (selected cards, card footers)
+//   --theme-tint          chips and icon circles
+//   --theme-pastel        buttons and highlights
+//   --theme-pastel-hover  hovered buttons, progress fill
+//   --theme-border        borders and decorations
+//   --theme-accent        icons, numbers, links
+//   --theme-ink           text on tint/pastel backgrounds
+//   --theme-shadow        soft colored shadow
+
+.theme-boy {
+  --theme-soft: #f2f8fd;
+  --theme-tint: #e6f1fb;
+  --theme-pastel: #d5e5f1;
+  --theme-pastel-hover: #bcd6ec;
+  --theme-border: #a9cbe8;
+  --theme-accent: #5a8fbf;
+  --theme-ink: #3e6e99;
+  --theme-shadow: rgba(90, 143, 191, 0.14);
+}
+
+.theme-girl {
+  --theme-soft: #fdf4f7;
+  --theme-tint: #fbe9ef;
+  --theme-pastel: #f6d8e0;
+  --theme-pastel-hover: #efc1cf;
+  --theme-border: #ebb5c6;
+  --theme-accent: #c4708d;
+  --theme-ink: #9c4d6a;
+  --theme-shadow: rgba(196, 112, 141, 0.14);
+}
+
+.theme-surprise,
+.theme-default {
+  --theme-soft: #f3f9e9;
+  --theme-tint: #edf5e3;
+  --theme-pastel: #d4ebb0;
+  --theme-pastel-hover: #bedc96;
+  --theme-border: #b8d995;
+  --theme-accent: #829b57;
+  --theme-ink: #5f7a3e;
+  --theme-shadow: rgba(130, 155, 87, 0.14);
+}

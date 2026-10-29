@@ -266,11 +266,132 @@ describe('GET /api/name/list?source=wikitree (names from the WikiTree tree)', ()
     expect(res.status).toBe(502);
   });
 
+  test('explains when WikiTree has not indexed a new tree yet', async () => {
+    const token = await registerUser();
+    await connectWikiTree(token);
+    mockWikiTree([{ status: 'Error querying CF', people: [] }]);
+
+    const res = await listWikiTree(token);
+
+    expect(res.status).toBe(503);
+    expect(res.body.message).toMatch(/still setting up your family tree/);
+  });
+
   test('rejects an unknown source', async () => {
     const token = await registerUser();
 
     const res = await request(app).get('/api/name/list?source=other').set('Authorization', `Bearer ${token}`);
 
     expect(res.status).toBe(400);
+  });
+});
+
+describe('favorites and shortlist', () => {
+  const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+  async function userWithFavorites(...names: string[]) {
+    const token = await registerUser();
+    for (const name of names) {
+      await request(app).post('/api/name').set(auth(token)).send({ name, gender: 'girl' }).expect(201);
+    }
+    return token;
+  }
+
+  test('DELETE /api/name/favorites/:name removes the favorite and its shortlist spot', async () => {
+    const token = await userWithFavorites('Hazel', 'Clara');
+    await request(app).put('/api/name/shortlist').set(auth(token)).send({ names: ['Hazel', 'Clara'] }).expect(200);
+
+    const res = await request(app).delete('/api/name/favorites/hazel').set(auth(token));
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ favorites: [{ name: 'Clara', gender: 'girl' }] });
+    const shortlist = await request(app).get('/api/name/shortlist').set(auth(token));
+    expect(shortlist.body).toEqual({ shortlist: ['Clara'] });
+  });
+
+  test('DELETE /api/name/favorites/:name is 404 for a name that was not saved', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).delete('/api/name/favorites/Hazel').set(auth(token));
+
+    expect(res.status).toBe(404);
+  });
+
+  test('PUT /api/name/shortlist keeps the order and the saved spelling', async () => {
+    const token = await userWithFavorites('Hazel', 'Clara', 'Rose');
+
+    const res = await request(app).put('/api/name/shortlist').set(auth(token)).send({ names: ['rose', 'Hazel'] });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ shortlist: ['Rose', 'Hazel'] });
+  });
+
+  test('PUT /api/name/shortlist rejects more than three, non-favorites and repeats', async () => {
+    const token = await userWithFavorites('Hazel', 'Clara', 'Rose', 'Opal');
+    const put = (names: unknown) => request(app).put('/api/name/shortlist').set(auth(token)).send({ names });
+
+    expect((await put(['Hazel', 'Clara', 'Rose', 'Opal'])).status).toBe(400);
+    expect((await put(['Violet'])).status).toBe(400);
+    expect((await put(['Hazel', 'hazel'])).status).toBe(400);
+    expect((await put('Hazel')).status).toBe(400);
+  });
+
+});
+
+describe('GET /api/name/info/:name and /api/name/search', () => {
+  test('returns the origin and meaning, ignoring case', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/info/hazel').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ name: 'Hazel', ...nameInfo.Hazel });
+  });
+
+  test('is 404 for a name we know nothing about', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/info/Zzyzx').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(404);
+  });
+
+  test('search lists names starting with the query first', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/search?q=ar').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    const names = res.body.names.map((n: { name: string }) => n.name);
+    expect(names[0]).toBe('Arthur');
+    expect(names).toContain('Margaret');
+    expect(names.every((n: string) => n.toLowerCase().includes('ar'))).toBe(true);
+  });
+
+  test('search requires a query', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/search?q=').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('GET /api/name/roots/:name', () => {
+  test('lists the ancestors who had the name in the demo tree', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/roots/hazel?source=demo').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ roots: [{ fullName: 'Hazel Morgan', relation: 'great-grandmother', birthYear: 1903 }] });
+  });
+
+  test('is empty for a name nobody in the tree had', async () => {
+    const token = await registerUser();
+
+    const res = await request(app).get('/api/name/roots/Zelda?source=demo').set('Authorization', `Bearer ${token}`);
+
+    expect(res.body).toEqual({ roots: [] });
   });
 });

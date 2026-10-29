@@ -63,6 +63,42 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+// bcrypt only reads the first 72 bytes of a password, so longer ones are rejected.
+const MAX_LENGTH = { name: 100, email: 254, passwordBytes: 72 };
+
+function tooLong(name: string | undefined, email: string, password: string): boolean {
+  return (
+    (name !== undefined && name.length > MAX_LENGTH.name) ||
+    email.length > MAX_LENGTH.email ||
+    Buffer.byteLength(password) > MAX_LENGTH.passwordBytes
+  );
+}
+
+// Slows down password guessing: too many failed logins for one email from one
+// address locks that pair out for a while. Kept in memory like everything else.
+const MAX_FAILED_LOGINS = 10;
+const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
+const failedLogins = new Map<string, { count: number; resetAt: number }>(); // "ip|email" -> failures
+
+function loginKey(req: Request, email: string): string {
+  return `${req.ip}|${email.trim().toLowerCase()}`;
+}
+
+function isLockedOut(key: string): boolean {
+  const entry = failedLogins.get(key);
+  if (entry && entry.resetAt < Date.now()) {
+    failedLogins.delete(key);
+    return false;
+  }
+  return (entry?.count ?? 0) >= MAX_FAILED_LOGINS;
+}
+
+function recordFailedLogin(key: string): void {
+  const entry = failedLogins.get(key) ?? { count: 0, resetAt: Date.now() + LOGIN_LOCKOUT_MS };
+  entry.count += 1;
+  failedLogins.set(key, entry);
+}
+
 // Attaches req.user and req.token when the request carries a valid session token.
 function setAuthUser(req: Request, res: Response, next: NextFunction) {
   const token = readToken(req);
@@ -91,6 +127,10 @@ authRouter.post('/', async (req: Request, res: Response) => {
     res.status(400).json({ message: 'name, email, and password are required' });
     return;
   }
+  if (tooLong(name, email, password)) {
+    res.status(400).json({ message: 'name, email, or password is too long' });
+    return;
+  }
   const user = await addUser(name.trim(), email, password);
   if (!user) {
     res.status(409).json({ message: 'email already registered' });
@@ -107,11 +147,22 @@ authRouter.put('/', async (req: Request, res: Response) => {
     res.status(400).json({ message: 'email and password are required' });
     return;
   }
-  const user = await verifyUser(email, password);
-  if (!user) {
+  if (tooLong(undefined, email, password)) {
     res.status(401).json({ message: 'invalid email or password' });
     return;
   }
+  const key = loginKey(req, email);
+  if (isLockedOut(key)) {
+    res.status(429).json({ message: 'Too many failed attempts. Please wait 15 minutes and try again.' });
+    return;
+  }
+  const user = await verifyUser(email, password);
+  if (!user) {
+    recordFailedLogin(key);
+    res.status(401).json({ message: 'invalid email or password' });
+    return;
+  }
+  failedLogins.delete(key);
   const token = createSession(user.id);
   res.json({ user, token });
 });

@@ -18,7 +18,7 @@
 
 .swiper-eyebrow {
   display: block;
-  color: #829b57;
+  color: var(--theme-accent);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 2px;
@@ -49,8 +49,8 @@
 }
 
 .swiper-gender-label {
-  background: #edf5e3;
-  color: #708e4c;
+  background: var(--theme-tint);
+  color: var(--theme-ink);
   border-radius: 30px;
   padding: 9px 20px;
   font-size: 13px;
@@ -60,7 +60,7 @@
 .swiper-change-btn {
   background: none;
   border: none;
-  color: #829b57;
+  color: var(--theme-accent);
   text-decoration: underline;
   cursor: pointer;
   font-family: inherit;
@@ -83,7 +83,7 @@
   width: 100%;
   max-width: 400px;
   height: 5px;
-  background: #edf2e6;
+  background: var(--theme-tint);
   border-radius: 10px;
   overflow: hidden;
   margin-bottom: 28px;
@@ -91,7 +91,7 @@
 
 .swiper-progress-fill {
   height: 100%;
-  background: #a9cf80;
+  background: var(--theme-pastel-hover);
   border-radius: 10px;
   transition: width 0.3s ease;
 }
@@ -102,7 +102,7 @@
   position: relative;
   width: 100%;
   max-width: 400px;
-  height: 430px;
+  height: 470px;
   margin-bottom: 35px;
 }
 
@@ -118,8 +118,8 @@
 
 .next-card {
   transform: scale(0.95) translateY(16px);
-  background: #f4f9ed;
-  border-color: #dceacb;
+  background: var(--theme-soft);
+  border-color: var(--theme-pastel);
 }
 
 .active-card {
@@ -144,7 +144,7 @@
   position: absolute;
   top: 25px;
   right: 28px;
-  color: #b8d995;
+  color: var(--theme-border);
   font-size: 30px;
 }
 
@@ -153,58 +153,60 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
-  padding: 75px 35px 20px;
+  padding: 48px 32px 16px;
 }
 
 .name-card-label {
-  background: #edf5e3;
-  color: #829b57;
+  background: var(--theme-tint);
+  color: var(--theme-ink);
   padding: 8px 20px;
   border-radius: 30px;
   font-size: 12px;
   font-weight: 600;
-  margin-bottom: 28px;
+  margin-bottom: 22px;
 }
 
 .name-card-content h2 {
-  font-size: 52px;
+  font-size: 48px;
   font-weight: 600;
   color: #302b28;
-  margin: 0 0 28px;
+  margin: 0 0 20px;
   line-height: 1.2;
 }
 
 .name-card-divider {
   width: 65px;
   height: 2px;
-  background: #d4ebb0;
-  margin-bottom: 30px;
+  background: var(--theme-pastel);
+  margin-bottom: 22px;
 }
 
 .name-detail {
   display: flex;
   flex-direction: column;
-  gap: 7px;
-  margin-bottom: 20px;
+  gap: 6px;
+  margin-bottom: 16px;
 }
 
 .detail-label {
   font-size: 10px;
   letter-spacing: 2px;
   font-weight: 600;
-  color: #9aaa91;
+  color: var(--theme-accent);
+  opacity: 0.75;
 }
 
 .detail-value {
-  font-size: 15px;
+  font-size: 14px;
+  line-height: 1.6;
   color: #555;
 }
 
 .name-card-bottom {
   text-align: center;
   padding: 18px;
-  background: #f3f9ea;
-  color: #91a67c;
+  background: var(--theme-soft);
+  color: var(--theme-accent);
   font-size: 11px;
   letter-spacing: 0.4px;
 }
@@ -225,14 +227,14 @@
 
 .like-indicator {
   left: 25px;
-  color: #78a85b;
-  border-color: #78a85b;
+  color: var(--theme-accent);
+  border-color: var(--theme-accent);
 }
 
 .pass-indicator {
   right: 25px;
-  color: #e79b91;
-  border-color: #e79b91;
+  color: #a3a3a3;
+  border-color: #a3a3a3;
   transform: rotate(15deg);
 }
 
@@ -278,21 +280,21 @@
 }
 
 .pass-action {
-  border: 2px solid #f0b9b0;
-  color: #d98c82;
+  border: 2px solid #dcdcdc;
+  color: #999;
 }
 
 .pass-action:hover:not(:disabled) {
-  background: #fff3f1;
+  background: #f6f6f6;
 }
 
 .like-action {
-  border: 2px solid #b8d995;
-  color: #829b57;
+  border: 2px solid var(--theme-border);
+  color: var(--theme-accent);
 }
 
 .like-action:hover:not(:disabled) {
-  background: #f3f9ea;
+  background: var(--theme-soft);
 }
 
 .swiper-instructions {
@@ -319,7 +321,7 @@
 
 .finished-icon {
   font-size: 65px;
-  color: #829b57;
+  color: var(--theme-accent);
   margin-bottom: 15px;
 }
 
@@ -348,7 +350,7 @@
 
 .finished-stats strong {
   font-size: 30px;
-  color: #829b57;
+  color: var(--theme-accent);
 }
 
 .finished-stats span {
@@ -374,15 +376,15 @@
 }
 
 .favorite-name-list span {
-  background: #edf5e3;
-  color: #718c51;
+  background: var(--theme-tint);
+  color: var(--theme-ink);
   padding: 9px 15px;
   border-radius: 30px;
   font-size: 13px;
 }
 
 .swiper-restart-btn {
-  background: #d4ebb0;
+  background: var(--theme-pastel);
   color: #333;
   border: none;
   border-radius: 30px;
@@ -393,13 +395,13 @@
 }
 
 .swiper-restart-btn:hover {
-  background: #bedc96;
+  background: var(--theme-pastel-hover);
 }
 
 .swiper-finished-change {
   background: none;
   border: none;
-  color: #829b57;
+  color: var(--theme-accent);
   text-decoration: underline;
   margin-top: 20px;
   cursor: pointer;
@@ -419,7 +421,7 @@
 
   .swiper-card-stack {
     max-width: 350px;
-    height: 410px;
+    height: 470px;
   }
 
   .name-card-content h2 {
@@ -435,7 +437,7 @@
 @media (max-width: 420px) {
   .swiper-card-stack {
     max-width: 100%;
-    height: 400px;
+    height: 480px;
   }
 
   .swiper-preferences {

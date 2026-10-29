@@ -68,14 +68,32 @@ const MAX_PAGES = 3;
 
 interface GetPeopleResponse {
   status?: string;
-  people?: Record<string, { FirstName?: string; RealName?: string; Gender?: string; Meta?: { Degrees?: number } }>;
+  people?: Record<
+    string,
+    {
+      FirstName?: string;
+      RealName?: string;
+      LastNameAtBirth?: string;
+      Gender?: string;
+      BirthDate?: string;
+      Meta?: { Degrees?: number };
+    }
+  >;
 }
+
+/**
+ * WikiTree couldn't walk the member's relationships ("Error querying CF"). Seen on
+ * brand-new profiles that WikiTree hasn't indexed yet, so it usually clears up later.
+ */
+export class WikiTreeTreeNotReadyError extends Error {}
 
 /** One profile from the member's tree. `degrees` is the generation: 0 is the member, 1 a parent. */
 export interface WikiTreeAncestor {
   firstName?: string;
   realName?: string;
+  lastName?: string;
   gender?: string;
+  birthDate?: string;
   degrees: number;
 }
 
@@ -88,19 +106,29 @@ export async function fetchWikiTreeAncestors(session: WikiTreeSession): Promise<
         action: 'getPeople',
         keys: session.userName,
         ancestors: String(ANCESTOR_GENERATIONS),
-        fields: 'Id,FirstName,RealName,Gender,Meta',
+        fields: 'Id,FirstName,RealName,LastNameAtBirth,Gender,BirthDate,Meta',
         limit: String(PAGE_LIMIT),
         start: String(page * PAGE_LIMIT),
       },
       session.cookies,
     );
     const result = data[0];
+    if (result?.status?.includes('Error querying CF')) {
+      throw new WikiTreeTreeNotReadyError(result.status);
+    }
     if (!result || result.status) {
       throw new Error(`WikiTree getPeople failed: ${result?.status ?? 'empty response'}`);
     }
     const people = Object.entries(result.people ?? {});
     for (const [id, p] of people) {
-      ancestors.set(id, { firstName: p.FirstName, realName: p.RealName, gender: p.Gender, degrees: p.Meta?.Degrees ?? 0 });
+      ancestors.set(id, {
+        firstName: p.FirstName,
+        realName: p.RealName,
+        lastName: p.LastNameAtBirth,
+        gender: p.Gender,
+        birthDate: p.BirthDate,
+        degrees: p.Meta?.Degrees ?? 0,
+      });
     }
     // The member is returned on every page; only their relatives count toward the limit.
     const related = people.filter(([, p]) => (p.Meta?.Degrees ?? 0) > 0).length;

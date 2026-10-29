@@ -1,0 +1,236 @@
+.top-picks {
+  max-width: 900px;
+  margin: 0 auto 50px;
+}
+
+.top-picks-header {
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.top-picks-header h2 {
+  margin: 0 0 6px;
+  font-size: 21px;
+  font-weight: 600;
+  color: #241f1f;
+}
+
+.top-picks-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #888;
+}
+
+.top-picks-spots {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.top-pick {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 76px;
+  padding: 14px 14px 14px 10px;
+  border: 1.5px solid var(--theme-border);
+  border-radius: 16px;
+  background: var(--theme-soft);
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+.top-pick[draggable="true"] {
+  cursor: grab;
+}
+
+.top-pick[draggable="true"]:active {
+  cursor: grabbing;
+}
+
+.top-pick-empty {
+  padding-left: 16px;
+  border: 1.5px dashed #d6d6d6;
+  background: #ffffff;
+}
+
+/* A dragged name is hovering over this spot. */
+.top-pick-over {
+  border-color: #829b57;
+  border-style: solid;
+  box-shadow: 0 0 0 4px rgba(130, 155, 87, 0.15);
+  transform: scale(1.02);
+}
+
+.top-pick-grip {
+  flex-shrink: 0;
+  color: #c4c4c4;
+  font-size: 12px;
+  letter-spacing: -2px;
+}
+
+.top-pick-rank {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--theme-pastel, #f1f1f1);
+  color: var(--theme-ink, #aaa);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.top-pick-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.top-pick-text a {
+  overflow: hidden;
+  color: #302b28;
+  font-size: 19px;
+  font-weight: 600;
+  text-decoration: none;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-pick-text a:hover {
+  text-decoration: underline;
+}
+
+.top-pick-text span {
+  overflow: hidden;
+  font-size: 12px;
+  color: #888;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.top-pick-placeholder {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.top-pick-remove {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #999;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.top-pick-remove:hover {
+  background: #ffffff;
+  color: #555;
+}
+
+.top-pick-remove:focus-visible,
+.top-pick-text a:focus-visible {
+  outline: 3px solid var(--theme-accent);
+  outline-offset: 2px;
+}
+
+/* Dashboard: a tighter row inside a panel. */
+
+.top-picks-compact {
+  margin: 0;
+}
+
+.top-picks-compact .top-picks-header {
+  margin-bottom: 12px;
+  text-align: left;
+}
+
+.top-picks-compact .top-picks-header h2 {
+  font-size: 15px;
+}
+
+.top-picks-compact .top-picks-header p {
+  font-size: 12px;
+}
+
+.top-picks-compact .top-picks-spots {
+  gap: 10px;
+}
+
+.top-picks-compact .top-pick {
+  min-height: 56px;
+  padding: 10px 8px;
+  gap: 8px;
+}
+
+.top-picks-compact .top-pick-text a {
+  font-size: 15px;
+}
+
+.top-picks-compact .top-pick-rank {
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+}
+
+/* Drop zone for taking a name out of the top 3 */
+
+.shortlist-remove-zone {
+  position: relative;
+  border-radius: 18px;
+  transition:
+    outline-color 0.15s ease,
+    background-color 0.15s ease;
+  outline: 2px dashed transparent;
+  outline-offset: 8px;
+}
+
+.shortlist-remove-active {
+  outline-color: #d6d6d6;
+  background-color: rgba(250, 250, 250, 0.8);
+}
+
+.shortlist-remove-label {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  z-index: 3;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 30px;
+  background: #555;
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .top-picks-spots {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .top-pick,
+  .shortlist-remove-zone {
+    transition: none;
+  }
+
+  .top-pick-over {
+    transform: none;
+  }
+}

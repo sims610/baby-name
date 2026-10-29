@@ -15,7 +15,7 @@ export const HOME_PATH = "/";
  * when nobody is logged in; the routes themselves are guarded by wrapping them in
  * <RequireAuth /> in app/app.tsx. Keep the two in sync.
  */
-export const MEMBERS_ONLY_PATHS: ReadonlySet<string> = new Set(["/discover", "/favorites", "/matches"]);
+export const MEMBERS_ONLY_PATHS: ReadonlySet<string> = new Set(["/dashboard", "/discover", "/favorites", "/matches"]);
 
 /** Whether a link to `path` should be shown, given whether someone is signed in. */
 export function isLinkVisible(path: string, isAuthenticated: boolean): boolean {

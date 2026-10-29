@@ -31,70 +31,6 @@
   color: #333;
 }
 
-/* Demo Mode Toggle */
-
-.demo-toggle {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0;
-  border: none;
-  background: none;
-  color: #333;
-  font-family: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.demo-toggle:focus-visible {
-  outline: 3px solid #829b57;
-  outline-offset: 4px;
-  border-radius: 8px;
-}
-
-.demo-toggle-track {
-  position: relative;
-  flex-shrink: 0;
-  width: 42px;
-  height: 24px;
-  border-radius: 12px;
-  background-color: #e3e3e3;
-  transition: background-color 0.2s ease;
-}
-
-.demo-toggle-thumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-  transition: transform 0.2s ease;
-}
-
-.demo-toggle[aria-checked="true"] .demo-toggle-track {
-  background-color: #829b57;
-}
-
-.demo-toggle[aria-checked="true"] .demo-toggle-thumb {
-  transform: translateX(18px);
-}
-
-.demo-toggle-label {
-  display: flex;
-  flex-direction: column;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.demo-toggle-hint {
-  font-size: 12px;
-  font-weight: 400;
-  color: #999;
-}
-
 .discover-breadcrumb-current {
   color: #829b57;
 }
@@ -182,18 +118,18 @@
 
 .gender-card:hover {
   transform: translateY(-4px);
-  border-color: #b9d99a;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  border-color: var(--theme-border);
+  box-shadow: 0 8px 24px var(--theme-shadow);
 }
 
 .gender-card.selected {
-  background-color: #f3f9e9;
-  border: 2px solid #a8cc7e;
-  box-shadow: 0 5px 18px rgba(130, 155, 87, 0.12);
+  background-color: var(--theme-soft);
+  border: 2px solid var(--theme-border);
+  box-shadow: 0 5px 18px var(--theme-shadow);
 }
 
 .gender-card:focus-visible {
-  outline: 3px solid #829b57;
+  outline: 3px solid var(--theme-accent);
   outline-offset: 3px;
 }
 
@@ -205,14 +141,14 @@
   height: 75px;
   margin-bottom: 22px;
   border-radius: 50%;
-  background-color: #edf5e3;
-  color: #829b57;
+  background-color: var(--theme-tint);
+  color: var(--theme-accent);
   font-size: 38px;
   font-weight: 500;
 }
 
 .gender-card.selected .gender-icon {
-  background-color: #d4ebb0;
+  background-color: var(--theme-pastel);
 }
 
 .gender-card h2 {
@@ -232,7 +168,7 @@
   position: absolute;
   top: 15px;
   right: 18px;
-  color: #829b57;
+  color: var(--theme-accent);
   font-size: 19px;
   font-weight: bold;
 }
@@ -248,7 +184,7 @@
   padding: 16px 30px;
   border: none;
   border-radius: 50px;
-  background-color: #d4ebb0;
+  background-color: var(--theme-pastel);
   color: #333;
   font-size: 16px;
   font-weight: 500;
@@ -258,7 +194,7 @@
 }
 
 .discover-start-btn:hover:not(:disabled) {
-  background-color: #bedc96;
+  background-color: var(--theme-pastel-hover);
 }
 
 .discover-start-btn:disabled {
@@ -267,7 +203,7 @@
 }
 
 .discover-start-btn:focus-visible {
-  outline: 3px solid #829b57;
+  outline: 3px solid var(--theme-accent);
   outline-offset: 3px;
 }
 

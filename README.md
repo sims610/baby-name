@@ -49,4 +49,6 @@ npm run dev
 
 This starts the API server on http://localhost:3000 and the client together. Once it's running, open the local URL Vite prints in the terminal (usually http://localhost:5173). The client forwards `/api` requests to the server, and http://localhost:3000/api/docs lists the available endpoints.
 
+To try the app without registering, log in with the demo account **test@gmail.com** / **test1234**. It comes with saved favorites, a top 3, and a linked partner, **test2@gmail.com** (same password), so Matches has names to compare.
+
 > **Note:** The server keeps accounts and favorites in memory, so restarting it erases them and signs everyone out. Names currently come from sample family tree data rather than FamilySearch.

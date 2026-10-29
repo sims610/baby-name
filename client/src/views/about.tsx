@@ -5,24 +5,34 @@ import "./about.css";
 
 const faqs = [
   {
-    question: "How does the Baby Name Generator work?",
+    question: "How does LittleRoots suggest names?",
     answer:
-      "Our Baby Name Generator suggests names based on the preferences you choose. You can explore different options and discover names that fit what you're looking for.",
+      "Sign in with WikiTree and we read your direct ancestors, up to ten generations back. Their first names become your suggestions, tidied up (no \"Unknown\" or placeholder names) and shown with their origin and meaning when we know them.",
   },
   {
-    question: "Can I save names that I like?",
+    question: "Do I need a WikiTree account?",
     answer:
-      "Yes! You can save your favorite baby names and revisit them anytime on your Favorites page.",
+      "To use your own family tree, yes. WikiTree is free to join. Just want to look around first? Turn on Demo mode on Discover to try names from a sample family.",
   },
   {
-    question: "Where does the name information come from?",
+    question: "Why don't I see names from my tree yet?",
     answer:
-      "We provide name meanings and origins to help you explore the history and significance behind different names.",
+      "Your WikiTree profile needs at least a parent or grandparent added. Brand-new profiles can also take a little while before WikiTree shares their family connections. Demo mode works in the meantime.",
   },
   {
-    question: "What if I'm not sure what kind of name I want?",
+    question: "How do favorites and the top 3 work?",
     answer:
-      "That's okay! You can browse and discover different names until you find one that feels right for you.",
+      "Swipe right or tap Like to save a name. On your Favorites page, drag your finalists into the three top spots, drag them to change the order, or drag one back down to take it out.",
+  },
+  {
+    question: "Can I choose names with my partner?",
+    answer:
+      "Yes. On the Matches page, share your invite code with your partner (or enter theirs) to link your accounts. Every name you both like shows up there as a match.",
+  },
+  {
+    question: "Who can see my favorites?",
+    answer:
+      "You decide in your Dashboard. Choose \"Only me\" to keep them private, even from your partner, or share them with your linked partner. Sharing with family through a link is coming soon.",
   },
 ];
 
@@ -84,14 +94,22 @@ export default function About() {
 
         {/* FAQ Section */}
         <section className="about-faq">
-          <h2>FAQs</h2>
+          <div className="about-faq-header">
+            <h2>Frequently asked questions</h2>
+            <p>
+              Still curious? <Link to="/contact">Send us a note</Link>.
+            </p>
+          </div>
 
           <div className="about-faq-list">
             {faqs.map((faq, index) => {
               const isOpen = openFaq === index;
 
               return (
-                <div className="about-faq-item" key={faq.question}>
+                <div
+                  className={`about-faq-item${isOpen ? " open" : ""}`}
+                  key={faq.question}
+                >
                   <button
                     type="button"
                     className="about-faq-question"
@@ -99,13 +117,23 @@ export default function About() {
                     aria-expanded={isOpen}
                     aria-controls={`faq-answer-${index}`}
                   >
-                    <span
-                      className="about-faq-icon"
+                    <span>{faq.question}</span>
+                    <svg
+                      className="about-faq-chevron"
+                      viewBox="0 0 24 24"
+                      width="18"
+                      height="18"
                       aria-hidden="true"
                     >
-                      {isOpen ? "−" : "+"}
-                    </span>
-                    <span>{faq.question}</span>
+                      <path
+                        d="M6 9l6 6 6-6"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
                   </button>
 
                   <div

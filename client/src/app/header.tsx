@@ -14,17 +14,18 @@ const NAV_LINKS = [
   { to: "/about", label: "About" },
 ];
 
-type HeaderProps = {
-  onSearch?: (query: string) => void;
-};
-
-export default function Header({ onSearch }: HeaderProps) {
+export default function Header() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [query, setQuery] = useState("");
 
+  // Opens the search page. Signed-out visitors are sent to log in first.
   function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
-    onSearch?.(query.trim());
+    const q = query.trim();
+    if (!q) return;
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+    setQuery("");
   }
 
   return (
@@ -73,23 +74,23 @@ export default function Header({ onSearch }: HeaderProps) {
   );
 }
 
-/** The signed-in user's first name, which opens a dropdown with a Log out option. */
+/** The signed-in user's first name, which opens a dropdown with Dashboard and Log out. */
 function UserMenu({ user }: { user: User }) {
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const logOutRef = useRef<HTMLButtonElement>(null);
+  const firstItemRef = useRef<HTMLAnchorElement>(null);
   const menuId = useId();
   const firstName = user.name.trim().split(/\s+/)[0];
 
-  // While open: focus Log out, and close on a click outside or Escape.
+  // While open: focus the first item, and close on a click outside or Escape.
   useEffect(() => {
     if (!open) {
       return;
     }
-    logOutRef.current?.focus();
+    firstItemRef.current?.focus();
 
     const handlePointerDown = (event: PointerEvent) => {
       if (!menuRef.current?.contains(event.target as Node)) {
@@ -141,7 +142,16 @@ function UserMenu({ user }: { user: User }) {
             <p className="user-menu__full-name">{user.name}</p>
             <p className="user-menu__email">{user.email}</p>
           </div>
-          <button ref={logOutRef} type="button" role="menuitem" className="user-menu__item" onClick={handleLogOut}>
+          <Link
+            ref={firstItemRef}
+            to="/dashboard"
+            role="menuitem"
+            className="user-menu__item"
+            onClick={() => setOpen(false)}
+          >
+            Dashboard
+          </Link>
+          <button type="button" role="menuitem" className="user-menu__item" onClick={handleLogOut}>
             Log out
           </button>
         </div>

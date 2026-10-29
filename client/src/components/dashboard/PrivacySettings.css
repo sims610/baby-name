@@ -1,0 +1,145 @@
+.privacy {
+  margin-bottom: 55px;
+  padding: 28px 30px;
+  border: 1px solid #ececec;
+  border-radius: 22px;
+  background: #ffffff;
+}
+
+.privacy-header {
+  margin-bottom: 20px;
+}
+
+.privacy-header h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 600;
+  color: #241f1f;
+}
+
+.privacy-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #888;
+}
+
+.privacy-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* The fieldset's group name, for screen readers only. */
+.privacy-legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.privacy-option {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1.5px solid #e3e3e3;
+  border-radius: 16px;
+  cursor: pointer;
+  transition:
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.privacy-option:hover {
+  border-color: var(--theme-border);
+}
+
+.privacy-option:has(input:checked) {
+  border-color: var(--theme-border);
+  background: var(--theme-soft);
+}
+
+.privacy-option:has(input:focus-visible) {
+  outline: 3px solid var(--theme-accent);
+  outline-offset: 3px;
+}
+
+/* The whole card is the control; the native radio stays for keyboard and screen readers. */
+.privacy-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.privacy-option-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--theme-tint);
+  color: var(--theme-accent);
+  font-size: 17px;
+}
+
+.privacy-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-right: 16px;
+}
+
+.privacy-option-text strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: #302b28;
+}
+
+.privacy-option-text span {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #888;
+}
+
+.privacy-option-check {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  color: var(--theme-accent);
+  font-weight: 700;
+  visibility: hidden;
+}
+
+.privacy-option:has(input:checked) .privacy-option-check {
+  visibility: visible;
+}
+
+.privacy-error {
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .privacy-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .privacy {
+    padding: 24px 22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .privacy-option {
+    transition: none;
+  }
+}
