@@ -135,14 +135,14 @@ export default function Footer() {
             <li>9am - 5pm (UTC)</li>
             <li>
               Call us:{" "}
-              <a href="tel:1234567868">
-                123-456-7868
+              <a href="tel:5554567868">
+                555-456-7868
               </a>
             </li>
             <li>
               Email us:{" "}
-              <a href="mailto:hello@littleroots.com">
-                hello@littleroots.com
+              <a href="mailto:hello@little-roots.app">
+                hello@little-roots.app
               </a>
             </li>
           </ul>

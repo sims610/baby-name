@@ -111,7 +111,7 @@ export default function Contact() {
               </svg>
             </div>
             <h2>Phone number</h2>
-            <a href="tel:1234567868">123-456-7868</a>
+            <a href="tel:5554567868">555-456-7868</a>
           </div>
 
           <div className="contact-info-card">
@@ -132,8 +132,8 @@ export default function Contact() {
                 </svg>
             </div>
             <h2>Email Us</h2>
-            <a href="mailto:hello@littleroots.com">
-                hello@littleroots.com
+            <a href="mailto:hello@little-roots.app">
+                hello@little-roots.app
             </a>
             </div>
 
