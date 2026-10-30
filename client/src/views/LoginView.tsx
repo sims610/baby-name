@@ -31,6 +31,10 @@ export default function LoginView() {
       </Notice>
     ) : reason === "signed-out" ? (
       <Notice>You have been logged out.</Notice>
+    ) : reason === "password-reset" ? (
+      <Notice variant="success" title="Password reset">
+        Your password has been changed. Log in with your new password.
+      </Notice>
     ) : reason === "auth-required" ? (
       <Notice>Please log in to continue. Don't have an account yet? Sign up below.</Notice>
     ) : null;

@@ -1,6 +1,20 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
-import { addUser, verifyUser, createSession, getUserByToken, deleteSession } from '../database/database.ts';
+import {
+  addUser,
+  verifyUser,
+  createSession,
+  getUserByToken,
+  deleteSession,
+  getUserByEmail,
+  verifyPasswordById,
+  setPassword,
+  createPasswordResetToken,
+  consumePasswordResetToken,
+  PASSWORD_RESET_TTL_MS,
+} from '../database/database.ts';
+import { appUrl, passwordChangedEmail, passwordResetEmail, sendEmail } from '../email.ts';
+import { passwordProblem } from '../passwordPolicy.ts';
 import type { User } from 'shared';
 
 declare global {
@@ -47,6 +61,31 @@ const authRouter = Object.assign(express.Router(), {
       description: 'Logout a user',
       example: `curl -X DELETE localhost:3000/api/auth -H 'Authorization: Bearer abc123'`,
       response: { message: 'logout successful' },
+    },
+    {
+      method: 'POST',
+      path: '/api/auth/forgot-password',
+      requiresAuth: false,
+      description:
+        'Email a one-time password reset link. Always answers the same way, so it never reveals whether an email has an account.',
+      example: `curl -X POST localhost:3000/api/auth/forgot-password -H 'Content-Type: application/json' -d '{"email":"pat@test.com"}'`,
+      response: { message: 'If an account exists for that email, a reset link is on its way.' },
+    },
+    {
+      method: 'POST',
+      path: '/api/auth/reset-password',
+      requiresAuth: false,
+      description: 'Set a new password using the token from a reset link. Signs the account out everywhere.',
+      example: `curl -X POST localhost:3000/api/auth/reset-password -H 'Content-Type: application/json' -d '{"token":"abc123", "password":"NewPassword1"}'`,
+      response: { message: 'Your password has been reset.' },
+    },
+    {
+      method: 'PUT',
+      path: '/api/auth/password',
+      requiresAuth: true,
+      description: 'Change your password. Signs you out on your other devices.',
+      example: `curl -X PUT localhost:3000/api/auth/password -H 'Content-Type: application/json' -H 'Authorization: Bearer abc123' -d '{"currentPassword":"secret", "newPassword":"NewPassword1"}'`,
+      response: { message: 'Your password has been changed.' },
     },
   ] as EndpointDoc[],
 });
@@ -171,6 +210,105 @@ authRouter.put('/', async (req: Request, res: Response) => {
 authRouter.delete('/', authenticateToken, (req: Request, res: Response) => {
   deleteSession(req.token!);
   res.json({ message: 'logout successful' });
+});
+
+// ---- Passwords ----
+
+// Stops the form being used to flood someone's inbox: at most this many reset
+// emails per address in the window. Extra requests get the same reply but no email.
+const MAX_RESET_EMAILS = 3;
+const RESET_EMAIL_WINDOW_MS = 15 * 60 * 1000;
+const resetEmailsSent = new Map<string, { count: number; resetAt: number }>(); // email -> emails sent
+
+function canSendResetEmail(email: string): boolean {
+  const now = Date.now();
+  const entry = resetEmailsSent.get(email);
+  if (!entry || entry.resetAt < now) {
+    resetEmailsSent.set(email, { count: 1, resetAt: now + RESET_EMAIL_WINDOW_MS });
+    return true;
+  }
+  if (entry.count >= MAX_RESET_EMAILS) {
+    return false;
+  }
+  entry.count += 1;
+  return true;
+}
+
+/** Sends without making the request wait, so the reply time doesn't hint whether the account exists. */
+function sendInBackground(email: Parameters<typeof sendEmail>[0]): void {
+  sendEmail(email).catch((error: unknown) => console.error('Could not send email:', error));
+}
+
+const FORGOT_PASSWORD_REPLY = { message: 'If an account exists for that email, a reset link is on its way.' };
+const INVALID_RESET_LINK = {
+  code: 'invalid_reset_link',
+  message: 'This reset link is invalid or has expired. Please request a new one.',
+};
+
+// forgot password: email a reset link
+authRouter.post('/forgot-password', (req: Request, res: Response) => {
+  const { email } = req.body ?? {};
+  if (!isNonEmptyString(email) || email.length > MAX_LENGTH.email) {
+    res.status(400).json({ message: 'a valid email is required' });
+    return;
+  }
+  const user = getUserByEmail(email);
+  if (user && canSendResetEmail(user.email)) {
+    const token = createPasswordResetToken(user.id);
+    const link = `${appUrl()}/reset-password?token=${token}`;
+    sendInBackground(passwordResetEmail(user.email, user.name, link, PASSWORD_RESET_TTL_MS / 60_000));
+  }
+  // Same answer whether or not the account exists.
+  res.status(202).json(FORGOT_PASSWORD_REPLY);
+});
+
+// reset password: set a new one with the emailed token
+authRouter.post('/reset-password', async (req: Request, res: Response) => {
+  const { token, password } = req.body ?? {};
+  if (!isNonEmptyString(token) || !isNonEmptyString(password)) {
+    res.status(400).json({ message: 'token and password are required' });
+    return;
+  }
+  // Check the password before using up the token, so a weak password can be fixed and resubmitted.
+  const problem = passwordProblem(password);
+  if (problem) {
+    res.status(400).json({ message: problem });
+    return;
+  }
+  const userId = consumePasswordResetToken(token);
+  if (!userId) {
+    res.status(400).json(INVALID_RESET_LINK);
+    return;
+  }
+  // Signs the account out everywhere: whoever had the old password is locked out.
+  await setPassword(userId, password);
+  res.json({ message: 'Your password has been reset.' });
+});
+
+// change password: signed-in users
+authRouter.put('/password', authenticateToken, async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body ?? {};
+  if (!isNonEmptyString(currentPassword) || !isNonEmptyString(newPassword)) {
+    res.status(400).json({ message: 'currentPassword and newPassword are required' });
+    return;
+  }
+  const user = req.user!;
+  if (Buffer.byteLength(currentPassword) > MAX_LENGTH.passwordBytes || !(await verifyPasswordById(user.id, currentPassword))) {
+    res.status(403).json({ message: 'Your current password is incorrect.' });
+    return;
+  }
+  if (newPassword === currentPassword) {
+    res.status(400).json({ message: 'Choose a password different from your current one.' });
+    return;
+  }
+  const problem = passwordProblem(newPassword);
+  if (problem) {
+    res.status(400).json({ message: problem });
+    return;
+  }
+  await setPassword(user.id, newPassword, req.token);
+  sendInBackground(passwordChangedEmail(user.email, user.name));
+  res.json({ message: 'Your password has been changed.' });
 });
 
 export { authRouter, setAuthUser, authenticateToken };

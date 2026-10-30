@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState, type SubmitEvent } from "react";
 import { Link, NavLink, useNavigate } from "react-router";
-import { LOGIN_PATH, isLinkVisible } from "@/auth/config";
+import { CHANGE_PASSWORD_PAGE_PATH, LOGIN_PATH, isLinkVisible } from "@/auth/config";
 import type { User } from "shared";
 import { useAuth } from "@/auth/useAuth";
 import type { LoginLocationState } from "@/components/session/IdleSessionManager";
@@ -150,6 +150,14 @@ function UserMenu({ user }: { user: User }) {
             onClick={() => setOpen(false)}
           >
             Dashboard
+          </Link>
+          <Link
+            to={CHANGE_PASSWORD_PAGE_PATH}
+            role="menuitem"
+            className="user-menu__item"
+            onClick={() => setOpen(false)}
+          >
+            Change password
           </Link>
           <button type="button" role="menuitem" className="user-menu__item" onClick={handleLogOut}>
             Log out

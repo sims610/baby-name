@@ -6,7 +6,13 @@ import type { Session } from "@/auth/types";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
 import PasswordField from "@/components/form/PasswordField";
 import TextField from "@/components/form/TextField";
-import { NETWORK_ERROR_MESSAGE, validateEmail } from "@/components/form/validation";
+import {
+  NETWORK_ERROR_MESSAGE,
+  PASSWORD_HINT,
+  validateConfirmPassword,
+  validateEmail,
+  validateNewPassword,
+} from "@/components/form/validation";
 import styles from "@/scss/components/AuthForm.module.scss";
 
 interface CreateAccountProps {
@@ -28,19 +34,6 @@ type FieldName = keyof FormValues;
 type FormErrors = Partial<Record<FieldName, string>>;
 
 const INITIAL_VALUES: FormValues = { name: "", email: "", password: "", confirmPassword: "" };
-const MIN_PASSWORD_LENGTH = 8;
-const PASSPHRASE_LENGTH = 12;
-const PASSWORD_HINT = `Use an uppercase letter, a lowercase letter, and a number, or more than ${PASSPHRASE_LENGTH} characters.`;
-
-/**
- * A password passes if it mixes character types (upper, lower, digit) or is long
- * enough to be a passphrase, where length alone provides the strength.
- */
-function isStrongPassword(password: string): boolean {
-  const isPassphrase = password.length > PASSPHRASE_LENGTH;
-  const isMixed = /[A-Z]/.test(password) && /[a-z]/.test(password) && /\d/.test(password);
-  return isPassphrase || isMixed;
-}
 
 function validate(values: FormValues): FormErrors {
   const errors: FormErrors = {};
@@ -54,18 +47,14 @@ function validate(values: FormValues): FormErrors {
     errors.email = emailError;
   }
 
-  if (!values.password) {
-    errors.password = "Please create a password.";
-  } else if (values.password.length < MIN_PASSWORD_LENGTH) {
-    errors.password = `Password must be at least ${MIN_PASSWORD_LENGTH} characters.`;
-  } else if (!isStrongPassword(values.password)) {
-    errors.password = PASSWORD_HINT;
+  const passwordError = validateNewPassword(values.password);
+  if (passwordError) {
+    errors.password = passwordError;
   }
 
-  if (!values.confirmPassword) {
-    errors.confirmPassword = "Please confirm your password.";
-  } else if (values.confirmPassword !== values.password) {
-    errors.confirmPassword = "Passwords do not match.";
+  const confirmError = validateConfirmPassword(values.confirmPassword, values.password);
+  if (confirmError) {
+    errors.confirmPassword = confirmError;
   }
 
   return errors;

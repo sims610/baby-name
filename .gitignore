@@ -2,5 +2,9 @@ node_modules
 dist
 coverage
 .env
+.env.example
 architecture.md
 BUGS.md
+
+# Local SQLite database (accounts and sessions)
+server/data/

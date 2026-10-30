@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import type {
   BabyName,
@@ -11,21 +11,42 @@ import type {
   PartnerMatches,
   User,
 } from 'shared';
+import { db } from './db.ts';
 import { nameInfo } from './nameInfo.ts';
 import type { NameCandidate } from '../names.ts';
 import type { WikiTreeSession } from '../wikitree.ts';
 
-interface StoredUser extends User {
-  passwordHash: string;
+// ---- Accounts and sessions (persisted in SQLite, see db.ts) ----
+
+interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  password_hash: string;
 }
 
-// In-memory storage. Everything is lost when the server restarts.
-const usersByEmail = new Map<string, StoredUser>();
 // Sessions end after a week even if the browser keeps the token ("remember me").
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const sessions = new Map<string, { userId: string; expiresAt: number }>(); // token -> session
 
-function toPublicUser({ id, name, email }: StoredUser): User {
+// Prepared once and reused: SQLite compiles each statement a single time.
+const insertUser = db.prepare(
+  'INSERT INTO users (id, name, email, password_hash, created_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO NOTHING',
+);
+const selectUserByEmail = db.prepare('SELECT id, name, email, password_hash FROM users WHERE email = ?');
+const selectUserById = db.prepare('SELECT id, name, email FROM users WHERE id = ?');
+const insertSession = db.prepare('INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (?, ?, ?)');
+const selectSessionUser = db.prepare(`
+  SELECT users.id, users.name, users.email, sessions.expires_at
+  FROM sessions JOIN users ON users.id = sessions.user_id
+  WHERE sessions.token_hash = ?
+`);
+const deleteSessionByHash = db.prepare('DELETE FROM sessions WHERE token_hash = ?');
+const deleteExpiredSessions = db.prepare('DELETE FROM sessions WHERE expires_at < ?');
+
+// Clear out sessions that expired while the server was stopped.
+deleteExpiredSessions.run(Date.now());
+
+function toPublicUser({ id, name, email }: { id: string; name: string; email: string }): User {
   return { id, name, email };
 }
 
@@ -33,55 +54,124 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+/**
+ * Only a hash of each session token is stored, so someone who reads the database
+ * file can't use what they find to log in. The client still holds the real token.
+ */
+function hashToken(token: string): string {
+  return createHash('sha256').update(token).digest('hex');
+}
+
 export async function addUser(name: string, email: string, password: string): Promise<User | null> {
   const key = normalizeEmail(email);
-  if (usersByEmail.has(key)) {
+  if (selectUserByEmail.get(key)) {
     return null;
   }
   const passwordHash = await bcrypt.hash(password, 10);
-  const user: StoredUser = { id: randomUUID(), name, email: key, passwordHash };
-  usersByEmail.set(key, user);
-  return toPublicUser(user);
+  const user: User = { id: randomUUID(), name, email: key };
+  // ON CONFLICT covers two sign-ups with the same email racing past the check above.
+  const { changes } = insertUser.run(user.id, user.name, user.email, passwordHash, Date.now());
+  return changes === 1 ? user : null;
 }
 
 export async function verifyUser(email: string, password: string): Promise<User | null> {
-  const user = usersByEmail.get(normalizeEmail(email));
-  if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
+  const user = selectUserByEmail.get(normalizeEmail(email)) as UserRow | undefined;
+  if (!user || !(await bcrypt.compare(password, user.password_hash))) {
     return null;
   }
   return toPublicUser(user);
+}
+
+/** Looks up an account by email (used by the demo seed). */
+export function getUserByEmail(email: string): User | null {
+  const user = selectUserByEmail.get(normalizeEmail(email)) as UserRow | undefined;
+  return user ? toPublicUser(user) : null;
 }
 
 export function createSession(userId: string): string {
   const token = randomBytes(32).toString('hex');
-  sessions.set(token, { userId, expiresAt: Date.now() + SESSION_TTL_MS });
+  insertSession.run(hashToken(token), userId, Date.now() + SESSION_TTL_MS);
   return token;
 }
 
-function findUserById(userId: string): StoredUser | null {
-  for (const user of usersByEmail.values()) {
-    if (user.id === userId) {
-      return user;
-    }
-  }
-  return null;
-}
-
-export function getUserByToken(token: string): User | null {
-  const session = sessions.get(token);
-  if (!session) {
-    return null;
-  }
-  if (session.expiresAt < Date.now()) {
-    sessions.delete(token);
-    return null;
-  }
-  const user = findUserById(session.userId);
+function findUserById(userId: string): User | null {
+  const user = selectUserById.get(userId) as User | undefined;
   return user ? toPublicUser(user) : null;
 }
 
+export function getUserByToken(token: string): User | null {
+  const tokenHash = hashToken(token);
+  const row = selectSessionUser.get(tokenHash) as (User & { expires_at: number }) | undefined;
+  if (!row) {
+    return null;
+  }
+  if (row.expires_at < Date.now()) {
+    deleteSessionByHash.run(tokenHash);
+    return null;
+  }
+  return toPublicUser(row);
+}
+
 export function deleteSession(token: string): void {
-  sessions.delete(token);
+  deleteSessionByHash.run(hashToken(token));
+}
+
+// ---- Passwords ----
+
+/** How long a "forgot password" link works. */
+export const PASSWORD_RESET_TTL_MS = 60 * 60 * 1000;
+
+const selectPasswordHashById = db.prepare('SELECT password_hash FROM users WHERE id = ?');
+const updatePasswordHash = db.prepare('UPDATE users SET password_hash = ? WHERE id = ?');
+const deleteSessionsForUser = db.prepare('DELETE FROM sessions WHERE user_id = ?');
+const deleteOtherSessionsForUser = db.prepare('DELETE FROM sessions WHERE user_id = ? AND token_hash != ?');
+const insertPasswordReset = db.prepare('INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES (?, ?, ?)');
+const deletePasswordResetsForUser = db.prepare('DELETE FROM password_resets WHERE user_id = ?');
+const takePasswordReset = db.prepare('DELETE FROM password_resets WHERE token_hash = ? RETURNING user_id, expires_at');
+const deleteExpiredPasswordResets = db.prepare('DELETE FROM password_resets WHERE expires_at < ?');
+
+deleteExpiredPasswordResets.run(Date.now());
+
+/** Checks a signed-in user's current password (for changing it). */
+export async function verifyPasswordById(userId: string, password: string): Promise<boolean> {
+  const row = selectPasswordHashById.get(userId) as { password_hash: string } | undefined;
+  return row ? bcrypt.compare(password, row.password_hash) : false;
+}
+
+/**
+ * Sets a new password and signs the account out everywhere, except the session in
+ * `keepToken` (the device that made the change, if it was signed in).
+ */
+export async function setPassword(userId: string, password: string, keepToken?: string): Promise<void> {
+  const passwordHash = await bcrypt.hash(password, 10);
+  updatePasswordHash.run(passwordHash, userId);
+  if (keepToken) {
+    deleteOtherSessionsForUser.run(userId, hashToken(keepToken));
+  } else {
+    deleteSessionsForUser.run(userId);
+  }
+  // Any outstanding reset links are for the old password; they shouldn't still work.
+  deletePasswordResetsForUser.run(userId);
+}
+
+/** Creates a one-time reset token. Any earlier link for the same account stops working. */
+export function createPasswordResetToken(userId: string): string {
+  const token = randomBytes(32).toString('hex');
+  deletePasswordResetsForUser.run(userId);
+  insertPasswordReset.run(hashToken(token), userId, Date.now() + PASSWORD_RESET_TTL_MS);
+  return token;
+}
+
+/**
+ * Uses up a reset token: returns its user id if it was valid and unexpired.
+ * The token is deleted either way, so a link can never be used twice.
+ */
+export function consumePasswordResetToken(token: string): string | null {
+  const row = takePasswordReset.get(hashToken(token)) as { user_id: string; expires_at: number } | undefined;
+  if (!row || row.expires_at < Date.now()) {
+    return null;
+  }
+  return row.user_id;
 }
 
 const favoritesByUser = new Map<string, FavoriteName[]>(); // user id -> favorites
@@ -177,7 +267,7 @@ export function getInviteCode(userId: string): string {
   return code;
 }
 
-function toPartner(user: StoredUser): Partner {
+function toPartner(user: User): Partner {
   return { name: user.name, email: user.email };
 }
 

@@ -24,6 +24,11 @@
   border-left-color: color-mix(in srgb, #{$palette-blue} 50%, #{$palette-gray});
 }
 
+.success {
+  background: rgba($palette-green, 0.6);
+  border-left-color: $palette-olive;
+}
+
 .warning {
   background: $color-warning-bg;
   border-left-color: $palette-olive;

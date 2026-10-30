@@ -1,11 +1,14 @@
 /** Error thrown for any non-2xx response, carrying the HTTP status and the server's message. */
 export class ApiError extends Error {
   readonly status: number;
+  /** Machine-readable reason, when the server sends one (e.g. "invalid_reset_link"). */
+  readonly code?: string;
 
-  constructor(status: number, message: string) {
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -47,7 +50,7 @@ export async function apiRequest<T>(path: string, { method = "GET", body, token,
 
   const data = await response.json().catch(() => null);
   if (!response.ok) {
-    throw new ApiError(response.status, data?.message ?? DEFAULT_ERROR_MESSAGE);
+    throw new ApiError(response.status, data?.message ?? DEFAULT_ERROR_MESSAGE, data?.code);
   }
   return data as T;
 }

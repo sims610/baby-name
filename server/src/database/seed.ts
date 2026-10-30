@@ -1,8 +1,9 @@
 import type { FavoriteName } from 'shared';
-import { addFavorite, addUser, getInviteCode, linkPartner, setShortlist } from './database.ts';
+import { addFavorite, addUser, getInviteCode, getUserByEmail, linkPartner, setShortlist } from './database.ts';
 
-// Ready-made accounts for trying the app locally. Storage is in memory, so the
-// server adds them again on every start. Not used by the tests.
+// Ready-made accounts for trying the app locally. The accounts persist in SQLite;
+// their favorites are in memory, so the server adds those again on every start.
+// Not used by the tests.
 export const DEMO_ACCOUNT = { name: 'Test User', email: 'test@gmail.com', password: 'test1234' };
 export const DEMO_PARTNER_ACCOUNT = { name: 'Daniel', email: 'test2@gmail.com', password: 'test1234' };
 
@@ -34,7 +35,9 @@ async function seedAccount(
   favorites: FavoriteName[],
   shortlist: string[],
 ) {
-  const user = await addUser(account.name, account.email, account.password);
+  // Accounts persist in SQLite, so after the first start the account already exists.
+  // Favorites and shortlists are still in memory, so re-add those every time.
+  const user = (await addUser(account.name, account.email, account.password)) ?? getUserByEmail(account.email);
   if (!user) {
     return null;
   }

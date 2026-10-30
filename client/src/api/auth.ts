@@ -22,6 +22,24 @@ export function login(input: LoginInput): Promise<Session> {
   return apiRequest<Session>("/auth", { method: "PUT", body: input });
 }
 
+/** `POST /api/auth/forgot-password` — emails a reset link if the account exists. */
+export function requestPasswordReset(email: string): Promise<{ message: string }> {
+  return apiRequest("/auth/forgot-password", { method: "POST", body: { email } });
+}
+
+/** `POST /api/auth/reset-password` — sets a new password using the emailed token. */
+export function resetPassword(token: string, password: string): Promise<{ message: string }> {
+  return apiRequest("/auth/reset-password", { method: "POST", body: { token, password } });
+}
+
+export interface ChangePasswordInput {
+  currentPassword: string;
+  newPassword: string;
+}
+
+/** Path for `PUT /api/auth/password`; call it through `useAuth().authRequest` so the session token is sent. */
+export const CHANGE_PASSWORD_PATH = "/auth/password";
+
 /** `DELETE /api/auth` — ends the server session for this token. */
 export function logout(token: string): Promise<{ message: string }> {
   return apiRequest("/auth", { method: "DELETE", token });

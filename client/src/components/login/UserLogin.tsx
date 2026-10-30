@@ -4,6 +4,7 @@ import { Link } from "react-router";
 import { login } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import type { Session } from "@/auth/types";
+import { FORGOT_PASSWORD_PATH } from "@/auth/config";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
 import Checkbox from "@/components/form/Checkbox";
 import TextField from "@/components/form/TextField";
@@ -128,12 +129,17 @@ export default function UserLogin({ onLoggedIn, notice, imageSrc, imageAlt }: Us
           onChange={handleChange}
           onBlur={() => handleBlur("password")}
         />
-        <Checkbox
-          label="Remember me"
-          name="remember"
-          checked={remember}
-          onChange={(event) => setRemember(event.target.checked)}
-        />
+        <div className={styles.optionsRow}>
+          <Checkbox
+            label="Remember me"
+            name="remember"
+            checked={remember}
+            onChange={(event) => setRemember(event.target.checked)}
+          />
+          <Link to={FORGOT_PASSWORD_PATH} className={styles.inlineLink}>
+            Forgot password?
+          </Link>
+        </div>
 
         <button className={styles.submit} type="submit" disabled={isSubmitting} aria-busy={isSubmitting}>
           {isSubmitting ? "Logging in…" : "Log In"}

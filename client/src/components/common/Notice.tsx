@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import styles from "@/scss/components/Notice.module.scss";
 
-type NoticeVariant = "info" | "warning" | "error";
+type NoticeVariant = "info" | "success" | "warning" | "error";
 
 interface NoticeProps {
   variant?: NoticeVariant;

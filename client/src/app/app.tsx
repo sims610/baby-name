@@ -18,6 +18,9 @@ const MatchesView = lazy(() => import("@/views/MatchesView"));
 const DashboardView = lazy(() => import("@/views/DashboardView"));
 const NameDetailView = lazy(() => import("@/views/NameDetailView"));
 const SearchView = lazy(() => import("@/views/SearchView"));
+const ForgotPasswordView = lazy(() => import("@/views/ForgotPasswordView"));
+const ResetPasswordView = lazy(() => import("@/views/ResetPasswordView"));
+const ChangePasswordView = lazy(() => import("@/views/ChangePasswordView"));
 
 const routes: RouteObject[] = [
   {
@@ -27,6 +30,8 @@ const routes: RouteObject[] = [
       { index: true, element: <HomeView /> },
       { path: "register", element: <CreateAccountView /> },
       { path: "login", element: <LoginView /> },
+      { path: "forgot-password", element: <ForgotPasswordView /> },
+      { path: "reset-password", element: <ResetPasswordView /> },
       { path: "about", element: <AboutView /> },
       // Signed-in users only. Keep in sync with MEMBERS_ONLY_PATHS in auth/config.ts,
       // which hides the matching header and footer links.
@@ -40,6 +45,7 @@ const routes: RouteObject[] = [
           { path: "matches", element: <MatchesView /> },
           { path: "names/:name", element: <NameDetailView /> },
           { path: "search", element: <SearchView /> },
+          { path: "account/password", element: <ChangePasswordView /> },
         ],
       },
       { path: "contact", element: <ContactView /> },
