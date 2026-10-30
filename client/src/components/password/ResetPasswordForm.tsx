@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ChangeEvent, FormEvent } from "react";
 import { Link } from "react-router";
-import { resetPassword } from "@/api/auth";
+import { resetPassword, verifyResetToken } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { FORGOT_PASSWORD_PATH } from "@/auth/config";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
@@ -29,13 +29,42 @@ interface FormValues {
 
 type FieldName = keyof FormValues;
 
+/** "checking" while the link is verified on open; "invalid" once it's known to be unusable. */
+type LinkStatus = "checking" | "valid" | "invalid";
+
 /** Step 2 of resetting a forgotten password: choose the new one. */
 export default function ResetPasswordForm({ token, onReset }: ResetPasswordFormProps) {
   const [values, setValues] = useState<FormValues>({ password: "", confirmPassword: "" });
   const [touched, setTouched] = useState<Partial<Record<FieldName, boolean>>>({});
   const [formError, setFormError] = useState<string | null>(null);
-  const [linkInvalid, setLinkInvalid] = useState(token === null);
+  const [linkStatus, setLinkStatus] = useState<LinkStatus>(token === null ? "invalid" : "checking");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Check the link as soon as the page opens, so a used, replaced or expired link
+  // says so straight away instead of after the user has typed a new password.
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+    let cancelled = false;
+    verifyResetToken(token)
+      .then(() => !cancelled && setLinkStatus("valid"))
+      .catch((error: unknown) => {
+        if (cancelled) {
+          return;
+        }
+        if (error instanceof ApiError && error.code === "invalid_reset_link") {
+          setLinkStatus("invalid");
+        } else {
+          // Couldn't check (e.g. offline): show the form; the server checks again on submit.
+          setLinkStatus("valid");
+          setFormError(error instanceof ApiError ? error.message : NETWORK_ERROR_MESSAGE);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const errors: Partial<Record<FieldName, string>> = {
     password: validateNewPassword(values.password, "Please choose a new password."),
@@ -62,8 +91,9 @@ export default function ResetPasswordForm({ token, onReset }: ResetPasswordFormP
       await resetPassword(token, values.password);
       onReset();
     } catch (error) {
+      // Still possible if the link expires or is used elsewhere while the page is open.
       if (error instanceof ApiError && error.code === "invalid_reset_link") {
-        setLinkInvalid(true);
+        setLinkStatus("invalid");
       } else {
         setFormError(error instanceof ApiError ? error.message : NETWORK_ERROR_MESSAGE);
       }
@@ -72,7 +102,17 @@ export default function ResetPasswordForm({ token, onReset }: ResetPasswordFormP
     }
   };
 
-  if (linkInvalid) {
+  if (linkStatus === "checking") {
+    return (
+      <AuthSplitLayout title="Reset Password" subtitle="Choose a new password for your LittleRoots account.">
+        <p className={styles.helpText} role="status">
+          Checking your link…
+        </p>
+      </AuthSplitLayout>
+    );
+  }
+
+  if (linkStatus === "invalid") {
     return (
       <AuthSplitLayout title="Reset Password" subtitle="This link can't be used to reset your password.">
         <div className={styles.form}>

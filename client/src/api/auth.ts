@@ -27,6 +27,11 @@ export function requestPasswordReset(email: string): Promise<{ message: string }
   return apiRequest("/auth/forgot-password", { method: "POST", body: { email } });
 }
 
+/** `POST /api/auth/reset-password/verify` — checks a reset link without using it up. */
+export function verifyResetToken(token: string): Promise<{ valid: true }> {
+  return apiRequest("/auth/reset-password/verify", { method: "POST", body: { token } });
+}
+
 /** `POST /api/auth/reset-password` — sets a new password using the emailed token. */
 export function resetPassword(token: string, password: string): Promise<{ message: string }> {
   return apiRequest("/auth/reset-password", { method: "POST", body: { token, password } });

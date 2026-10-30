@@ -138,6 +138,49 @@ describe('POST /api/auth/reset-password', () => {
   });
 });
 
+describe('POST /api/auth/reset-password/verify', () => {
+  function verify(token: string) {
+    return request(app).post('/api/auth/reset-password/verify').send({ token });
+  }
+
+  test('accepts a fresh link without using it up', async () => {
+    const user = await registerUser();
+    const token = await requestResetToken(user.email);
+
+    await verify(token).expect(200, { valid: true });
+    await verify(token).expect(200, { valid: true });
+    await request(app).post('/api/auth/reset-password').send({ token, password: STRONG_PASSWORD }).expect(200);
+  });
+
+  test('rejects a link that was already used', async () => {
+    const user = await registerUser();
+    const token = await requestResetToken(user.email);
+    await request(app).post('/api/auth/reset-password').send({ token, password: STRONG_PASSWORD }).expect(200);
+
+    const res = await verify(token);
+
+    expect(res.status).toBe(400);
+    expect(res.body.code).toBe('invalid_reset_link');
+  });
+
+  test('rejects a link replaced by a newer one, or one that has expired', async () => {
+    const user = await registerUser();
+    const replaced = await requestResetToken(user.email);
+    const latest = await requestResetToken(user.email);
+
+    await verify(replaced).expect(400);
+    await verify(latest).expect(200);
+
+    jest.spyOn(Date, 'now').mockReturnValue(Date.now() + PASSWORD_RESET_TTL_MS + 1000);
+    await verify(latest).expect(400);
+  });
+
+  test('rejects a missing or made-up token', async () => {
+    await request(app).post('/api/auth/reset-password/verify').send({}).expect(400);
+    await verify('not-a-real-token').expect(400);
+  });
+});
+
 describe('PUT /api/auth/password (change password)', () => {
   function changePassword(token: string, body: object) {
     return request(app).put('/api/auth/password').set('Authorization', `Bearer ${token}`).send(body);

@@ -128,6 +128,7 @@ const deleteOtherSessionsForUser = db.prepare('DELETE FROM sessions WHERE user_i
 const insertPasswordReset = db.prepare('INSERT INTO password_resets (token_hash, user_id, expires_at) VALUES (?, ?, ?)');
 const deletePasswordResetsForUser = db.prepare('DELETE FROM password_resets WHERE user_id = ?');
 const takePasswordReset = db.prepare('DELETE FROM password_resets WHERE token_hash = ? RETURNING user_id, expires_at');
+const selectPasswordResetExpiry = db.prepare('SELECT expires_at FROM password_resets WHERE token_hash = ?');
 const deleteExpiredPasswordResets = db.prepare('DELETE FROM password_resets WHERE expires_at < ?');
 
 deleteExpiredPasswordResets.run(Date.now());
@@ -160,6 +161,16 @@ export function createPasswordResetToken(userId: string): string {
   deletePasswordResetsForUser.run(userId);
   insertPasswordReset.run(hashToken(token), userId, Date.now() + PASSWORD_RESET_TTL_MS);
   return token;
+}
+
+/**
+ * Whether a reset token can still be used: it exists (not used or replaced by a
+ * newer link) and hasn't expired. Unlike consumePasswordResetToken, it leaves the
+ * token in place, so the reset page can check the link when it opens.
+ */
+export function isPasswordResetTokenValid(token: string): boolean {
+  const row = selectPasswordResetExpiry.get(hashToken(token)) as { expires_at: number } | undefined;
+  return row !== undefined && row.expires_at >= Date.now();
 }
 
 /**

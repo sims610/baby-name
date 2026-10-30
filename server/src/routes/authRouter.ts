@@ -11,6 +11,7 @@ import {
   setPassword,
   createPasswordResetToken,
   consumePasswordResetToken,
+  isPasswordResetTokenValid,
   PASSWORD_RESET_TTL_MS,
 } from '../database/database.ts';
 import { appUrl, passwordChangedEmail, passwordResetEmail, sendEmail } from '../email.ts';
@@ -70,6 +71,15 @@ const authRouter = Object.assign(express.Router(), {
         'Email a one-time password reset link. Always answers the same way, so it never reveals whether an email has an account.',
       example: `curl -X POST localhost:3000/api/auth/forgot-password -H 'Content-Type: application/json' -d '{"email":"pat@test.com"}'`,
       response: { message: 'If an account exists for that email, a reset link is on its way.' },
+    },
+    {
+      method: 'POST',
+      path: '/api/auth/reset-password/verify',
+      requiresAuth: false,
+      description:
+        'Check whether a reset link can still be used (not used, replaced, or expired) without using it up. The token goes in the body so it stays out of server logs.',
+      example: `curl -X POST localhost:3000/api/auth/reset-password/verify -H 'Content-Type: application/json' -d '{"token":"abc123"}'`,
+      response: { valid: true },
     },
     {
       method: 'POST',
@@ -260,6 +270,16 @@ authRouter.post('/forgot-password', (req: Request, res: Response) => {
   }
   // Same answer whether or not the account exists.
   res.status(202).json(FORGOT_PASSWORD_REPLY);
+});
+
+// check a reset link when the page opens, without using it up
+authRouter.post('/reset-password/verify', (req: Request, res: Response) => {
+  const { token } = req.body ?? {};
+  if (!isNonEmptyString(token) || !isPasswordResetTokenValid(token)) {
+    res.status(400).json(INVALID_RESET_LINK);
+    return;
+  }
+  res.json({ valid: true });
 });
 
 // reset password: set a new one with the emailed token
