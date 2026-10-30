@@ -12,6 +12,10 @@ export const FORGOT_PASSWORD_PATH = "/forgot-password";
 export const RESET_PASSWORD_PATH = "/reset-password";
 export const CHANGE_PASSWORD_PAGE_PATH = "/account/password";
 
+/** Address and subject of the reset email, so users can find it (must match server/src/email.ts). */
+export const RESET_EMAIL_SENDER = "hello@little-roots.app";
+export const RESET_EMAIL_SUBJECT = "Reset your LittleRoots password";
+
 /** Where users land after signing up or logging in. */
 export const HOME_PATH = "/";
 

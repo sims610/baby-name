@@ -3,7 +3,7 @@ import type { ChangeEvent, FormEvent } from "react";
 import { Link } from "react-router";
 import { requestPasswordReset } from "@/api/auth";
 import { ApiError } from "@/api/client";
-import { LOGIN_PATH } from "@/auth/config";
+import { LOGIN_PATH, RESET_EMAIL_SENDER, RESET_EMAIL_SUBJECT } from "@/auth/config";
 import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
 import Notice from "@/components/common/Notice";
 import TextField from "@/components/form/TextField";
@@ -50,9 +50,18 @@ export default function ForgotPasswordForm() {
             If an account exists for <strong>{sentTo}</strong>, we've sent it a link to reset your password. The link
             expires in 60 minutes.
           </Notice>
-          <p className={styles.helpText}>
-            Didn't get it? Check your spam folder, or make sure you used the email you signed up with.
-          </p>
+          <Notice variant="warning" title="Not in your inbox?">
+            <ul className={styles.tipList}>
+              <li>
+                Check your <strong>junk or spam folder</strong>. Reset emails sometimes land there.
+              </li>
+              <li>
+                Look for an email from <strong>{RESET_EMAIL_SENDER}</strong> with the subject "{RESET_EMAIL_SUBJECT}".
+                If it's in spam, mark it as "Not spam" so future emails reach your inbox.
+              </li>
+              <li>It can take a few minutes to arrive. Make sure you used the email you signed up with.</li>
+            </ul>
+          </Notice>
           <button
             className={styles.submit}
             type="button"

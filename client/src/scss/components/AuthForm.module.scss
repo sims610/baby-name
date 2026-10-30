@@ -116,3 +116,12 @@
   justify-content: center;
   text-decoration: none;
 }
+
+// Short list of tips inside a Notice (e.g. "Not in your inbox?").
+.tipList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
