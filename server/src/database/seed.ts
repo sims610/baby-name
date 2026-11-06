@@ -1,8 +1,16 @@
 import type { FavoriteName } from 'shared';
-import { addFavorite, addUser, getInviteCode, getUserByEmail, linkPartner, setShortlist } from './database.ts';
+import {
+  addFavorite,
+  addUser,
+  getInviteCode,
+  getPartner,
+  getUserByEmail,
+  linkPartner,
+  setShortlist,
+} from './database.ts';
 
-// Ready-made accounts for trying the app locally. The accounts persist in SQLite;
-// their favorites are in memory, so the server adds those again on every start.
+// Ready-made accounts for trying the app locally, saved in MySQL. Seeding runs on
+// every start and puts back anything missing (favorites, top picks, the partner link).
 // Not used by the tests.
 export const DEMO_ACCOUNT = { name: 'Test User', email: 'test@gmail.com', password: 'test1234' };
 export const DEMO_PARTNER_ACCOUNT = { name: 'Daniel', email: 'test2@gmail.com', password: 'test1234' };
@@ -35,16 +43,15 @@ async function seedAccount(
   favorites: FavoriteName[],
   shortlist: string[],
 ) {
-  // Accounts persist in SQLite, so after the first start the account already exists.
-  // Favorites and shortlists are still in memory, so re-add those every time.
-  const user = (await addUser(account.name, account.email, account.password)) ?? getUserByEmail(account.email);
+  // After the first start the account already exists, and favorites already saved are skipped.
+  const user = (await addUser(account.name, account.email, account.password)) ?? (await getUserByEmail(account.email));
   if (!user) {
     return null;
   }
   for (const favorite of favorites) {
-    addFavorite(user.id, favorite);
+    await addFavorite(user.id, favorite);
   }
-  setShortlist(user.id, shortlist);
+  await setShortlist(user.id, shortlist);
   return user;
 }
 
@@ -52,7 +59,7 @@ async function seedAccount(
 export async function seedDemoAccounts(): Promise<void> {
   const you = await seedAccount(DEMO_ACCOUNT, DEMO_FAVORITES, ['Hazel', 'Jasper']);
   const partner = await seedAccount(DEMO_PARTNER_ACCOUNT, PARTNER_FAVORITES, ['Hazel', 'Arthur', 'Clara']);
-  if (you && partner) {
-    linkPartner(you.id, getInviteCode(partner.id));
+  if (you && partner && !(await getPartner(you.id))) {
+    await linkPartner(you.id, await getInviteCode(partner.id));
   }
 }

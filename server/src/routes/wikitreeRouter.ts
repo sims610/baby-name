@@ -69,13 +69,13 @@ wikitreeRouter.post('/login', authenticateToken, async (req: Request, res: Respo
     res.status(400).json({ message: "WikiTree sign-in didn't complete. Please try again." });
     return;
   }
-  setWikiTreeSession(req.user!.id, session);
+  await setWikiTreeSession(req.user!.id, session);
   res.json({ user: toUser(session) });
 });
 
 // get the connected WikiTree member
 wikitreeRouter.get('/session', authenticateToken, async (req: Request, res: Response) => {
-  const session = getWikiTreeSession(req.user!.id);
+  const session = await getWikiTreeSession(req.user!.id);
   if (!session) {
     res.json({ user: null });
     return;
@@ -90,7 +90,7 @@ wikitreeRouter.get('/session', authenticateToken, async (req: Request, res: Resp
       return;
     }
     if (!signedIn) {
-      deleteWikiTreeSession(req.user!.id);
+      await deleteWikiTreeSession(req.user!.id);
       res.json({ user: null });
       return;
     }
@@ -100,8 +100,8 @@ wikitreeRouter.get('/session', authenticateToken, async (req: Request, res: Resp
 
 // sign out of WikiTree
 wikitreeRouter.delete('/session', authenticateToken, async (req: Request, res: Response) => {
-  const session = getWikiTreeSession(req.user!.id);
-  deleteWikiTreeSession(req.user!.id);
+  const session = await getWikiTreeSession(req.user!.id);
+  await deleteWikiTreeSession(req.user!.id);
   if (session?.cookies) {
     // Best effort: our copy of the session is already gone either way.
     await logoutWikiTree(session).catch(() => undefined);

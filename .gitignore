@@ -5,6 +5,5 @@ coverage
 .env.example
 architecture.md
 BUGS.md
-
-# Local SQLite database (accounts and sessions)
-server/data/
+.DS_Store
+*.tsbuildinfo

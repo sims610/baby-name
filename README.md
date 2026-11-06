@@ -30,6 +30,7 @@ This project will be a FamilySearch based baby name generator web app. It will s
 
 ### Prerequisites
 * [Node.js](https://nodejs.org/) (includes npm)
+* [Docker Desktop](https://www.docker.com/products/docker-desktop/), to run MySQL locally
 
 ### Installation
 From the project's root folder, install the dependencies:
@@ -39,6 +40,15 @@ npm install
 ```
 
 This installs the dependencies for every workspace in one step, so you don't need to run it inside each folder.
+
+### Starting the Database
+Accounts and sessions are stored in MySQL 8.4, which runs in Docker. With Docker Desktop open, run this from the project's root folder:
+
+```bash
+docker compose up -d
+```
+
+The data lives in a Docker volume, so it survives restarts. Stop MySQL with `docker compose down`, or erase all its data with `docker compose down -v`. The tests need MySQL running too.
 
 ### Running the App
 Start the development servers:
@@ -51,4 +61,4 @@ This starts the API server on http://localhost:3000 and the client together. Onc
 
 To try the app without registering, log in with the demo account **test@gmail.com** / **test1234**. It comes with saved favorites, a top 3, and a linked partner, **test2@gmail.com** (same password), so Matches has names to compare.
 
-> **Note:** The server keeps accounts and favorites in memory, so restarting it erases them and signs everyone out. Names currently come from sample family tree data rather than FamilySearch.
+> **Note:** Everything the app saves (accounts, favorites, partner links, settings, WikiTree sign-ins and contact messages) is stored in MySQL, so it survives restarts. Names currently come from sample family tree data rather than FamilySearch.

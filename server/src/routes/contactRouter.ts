@@ -37,7 +37,7 @@ function readField(value: unknown, maxLength: number): string | null {
 }
 
 // send a contact message
-contactRouter.post('/', (req: Request, res: Response) => {
+contactRouter.post('/', async (req: Request, res: Response) => {
   const body = req.body ?? {};
   const name = readField(body.name, MAX_LENGTH.name);
   const email = readField(body.email, MAX_LENGTH.email);
@@ -63,7 +63,7 @@ contactRouter.post('/', (req: Request, res: Response) => {
     return;
   }
 
-  addContactMessage({ name, email, message, ...(phone ? { phone } : {}) }, req.user?.id);
+  await addContactMessage({ name, email, message, ...(phone ? { phone } : {}) }, req.user?.id);
   res.status(201).json({ message: 'message received' });
 });
 

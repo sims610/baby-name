@@ -3,14 +3,14 @@ import request from 'supertest';
 import app from '../service.ts';
 import { listContactMessages } from '../database/database.ts';
 
-// The database is in memory and shared by every test in this file, so each message gets its own email
+// The database is shared by every test in this file, so each message gets its own email
 // and tests look up the message they sent rather than counting the whole list.
 function uniqueEmail(): string {
   return `pat-${crypto.randomUUID()}@test.com`;
 }
 
-function findMessage(email: string) {
-  return listContactMessages().filter((m) => m.email === email);
+async function findMessage(email: string) {
+  return (await listContactMessages()).filter((m) => m.email === email);
 }
 
 describe('POST /api/contact (send a contact message)', () => {
@@ -24,7 +24,7 @@ describe('POST /api/contact (send a contact message)', () => {
     expect(res.status).toBe(201);
     expect(res.body).toEqual({ message: 'message received' });
 
-    const stored = findMessage(email);
+    const stored = await findMessage(email);
     expect(stored).toHaveLength(1);
     expect(stored[0]).toMatchObject({ name: 'Pat', email, phone: '123-456-7890', message: 'Love the app!' });
     expect(stored[0].userId).toBeUndefined();
@@ -35,7 +35,7 @@ describe('POST /api/contact (send a contact message)', () => {
 
     await request(app).post('/api/contact').send({ name: 'Pat', email, phone: '', message: 'Hi' }).expect(201);
 
-    expect(findMessage(email)[0]).not.toHaveProperty('phone');
+    expect((await findMessage(email))[0]).not.toHaveProperty('phone');
   });
 
   test('records who sent it when the sender is signed in', async () => {
@@ -51,7 +51,7 @@ describe('POST /api/contact (send a contact message)', () => {
       .send({ name: 'Pat', email, message: 'Hi' })
       .expect(201);
 
-    expect(findMessage(email)[0].userId).toBe(auth.body.user.id);
+    expect((await findMessage(email))[0].userId).toBe(auth.body.user.id);
   });
 
   test.each([
@@ -62,12 +62,12 @@ describe('POST /api/contact (send a contact message)', () => {
     ['message is too long', { name: 'Pat', email: 'pat@test.com', message: 'x'.repeat(5001) }],
     ['phone is not a string', { name: 'Pat', email: 'pat@test.com', phone: 123, message: 'Hi' }],
   ])('rejects the message when %s', async (_case, body) => {
-    const before = listContactMessages().length;
+    const before = (await listContactMessages()).length;
 
     const res = await request(app).post('/api/contact').send(body);
 
     expect(res.status).toBe(400);
     expect(typeof res.body.message).toBe('string');
-    expect(listContactMessages()).toHaveLength(before);
+    expect(await listContactMessages()).toHaveLength(before);
   });
 });

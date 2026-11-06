@@ -1,8 +1,17 @@
 import app from './service.ts';
 import { DEMO_ACCOUNT, DEMO_PARTNER_ACCOUNT, seedDemoAccounts } from './database/seed.ts';
+import { initDatabase } from './database/db.ts';
+import { deleteExpiredRecords } from './database/database.ts';
 
-const port = process.argv[2] || 3000;
+const port = process.argv[2] || process.env.PORT || 3000;
 
+try {
+  await initDatabase();
+} catch (error) {
+  console.error('Could not connect to MySQL. Is it running? From the repo root: docker compose up -d');
+  throw error;
+}
+await deleteExpiredRecords();
 await seedDemoAccounts();
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);

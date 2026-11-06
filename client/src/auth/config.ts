@@ -9,7 +9,6 @@ export const LOGIN_PATH = "/login";
 
 /** Password pages. */
 export const FORGOT_PASSWORD_PATH = "/forgot-password";
-export const RESET_PASSWORD_PATH = "/reset-password";
 export const CHANGE_PASSWORD_PAGE_PATH = "/account/password";
 
 /** Address and subject of the reset email, so users can find it (must match server/src/email.ts). */

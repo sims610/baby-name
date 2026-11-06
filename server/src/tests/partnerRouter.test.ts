@@ -2,7 +2,7 @@ import { describe, expect, test } from '@jest/globals';
 import request from 'supertest';
 import app from '../service.ts';
 
-// The database is in memory and shared by every test in this file, so each user gets its own email.
+// The database is shared by every test in this file, so each user gets its own email.
 async function registerUser(name = 'Pat'): Promise<{ token: string; email: string }> {
   const email = `${name.toLowerCase()}-${crypto.randomUUID()}@test.com`;
   const res = await request(app).post('/api/auth').send({ name, email, password: 'secret' }).expect(201);

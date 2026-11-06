@@ -2,7 +2,7 @@ import { afterEach, describe, expect, jest, test } from '@jest/globals';
 import request from 'supertest';
 import app from '../service.ts';
 
-// The database is in memory and shared by every test in this file, so each user gets its own email.
+// The database is shared by every test in this file, so each user gets its own email.
 async function registerUser(): Promise<string> {
   const res = await request(app)
     .post('/api/auth')

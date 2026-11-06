@@ -124,7 +124,7 @@ function tooLong(name: string | undefined, email: string, password: string): boo
 }
 
 // Slows down password guessing: too many failed logins for one email from one
-// address locks that pair out for a while. Kept in memory like everything else.
+// address locks that pair out for a while. Kept in memory: the counts only matter for 15 minutes.
 const MAX_FAILED_LOGINS = 10;
 const LOGIN_LOCKOUT_MS = 15 * 60 * 1000;
 const failedLogins = new Map<string, { count: number; resetAt: number }>(); // "ip|email" -> failures
@@ -149,10 +149,10 @@ function recordFailedLogin(key: string): void {
 }
 
 // Attaches req.user and req.token when the request carries a valid session token.
-function setAuthUser(req: Request, res: Response, next: NextFunction) {
+async function setAuthUser(req: Request, res: Response, next: NextFunction) {
   const token = readToken(req);
   if (token) {
-    const user = getUserByToken(token);
+    const user = await getUserByToken(token);
     if (user) {
       req.user = user;
       req.token = token;
@@ -185,7 +185,7 @@ authRouter.post('/', async (req: Request, res: Response) => {
     res.status(409).json({ message: 'email already registered' });
     return;
   }
-  const token = createSession(user.id);
+  const token = await createSession(user.id);
   res.status(201).json({ user, token });
 });
 
@@ -212,13 +212,13 @@ authRouter.put('/', async (req: Request, res: Response) => {
     return;
   }
   failedLogins.delete(key);
-  const token = createSession(user.id);
+  const token = await createSession(user.id);
   res.json({ user, token });
 });
 
 // logout
-authRouter.delete('/', authenticateToken, (req: Request, res: Response) => {
-  deleteSession(req.token!);
+authRouter.delete('/', authenticateToken, async (req: Request, res: Response) => {
+  await deleteSession(req.token!);
   res.json({ message: 'logout successful' });
 });
 
@@ -256,15 +256,15 @@ const INVALID_RESET_LINK = {
 };
 
 // forgot password: email a reset link
-authRouter.post('/forgot-password', (req: Request, res: Response) => {
+authRouter.post('/forgot-password', async (req: Request, res: Response) => {
   const { email } = req.body ?? {};
   if (!isNonEmptyString(email) || email.length > MAX_LENGTH.email) {
     res.status(400).json({ message: 'a valid email is required' });
     return;
   }
-  const user = getUserByEmail(email);
+  const user = await getUserByEmail(email);
   if (user && canSendResetEmail(user.email)) {
-    const token = createPasswordResetToken(user.id);
+    const token = await createPasswordResetToken(user.id);
     const link = `${appUrl()}/reset-password?token=${token}`;
     sendInBackground(passwordResetEmail(user.email, user.name, link, PASSWORD_RESET_TTL_MS / 60_000));
   }
@@ -273,9 +273,9 @@ authRouter.post('/forgot-password', (req: Request, res: Response) => {
 });
 
 // check a reset link when the page opens, without using it up
-authRouter.post('/reset-password/verify', (req: Request, res: Response) => {
+authRouter.post('/reset-password/verify', async (req: Request, res: Response) => {
   const { token } = req.body ?? {};
-  if (!isNonEmptyString(token) || !isPasswordResetTokenValid(token)) {
+  if (!isNonEmptyString(token) || !(await isPasswordResetTokenValid(token))) {
     res.status(400).json(INVALID_RESET_LINK);
     return;
   }
@@ -295,7 +295,7 @@ authRouter.post('/reset-password', async (req: Request, res: Response) => {
     res.status(400).json({ message: problem });
     return;
   }
-  const userId = consumePasswordResetToken(token);
+  const userId = await consumePasswordResetToken(token);
   if (!userId) {
     res.status(400).json(INVALID_RESET_LINK);
     return;

@@ -12,6 +12,23 @@ jobs:
     permissions:
       contents: write
 
+    # MySQL for the tests, same version as compose.yaml and AWS RDS.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ROOT_PASSWORD: rootpass
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -prootpass"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      TEST_DATABASE_URL: mysql://root:rootpass@127.0.0.1:3306
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v7

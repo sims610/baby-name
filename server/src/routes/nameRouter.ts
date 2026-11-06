@@ -138,19 +138,19 @@ async function nameCandidates(req: Request, res: Response): Promise<NameCandidat
     return null;
   }
   const userId = req.user!.id;
-  const session = getWikiTreeSession(userId);
+  const session = await getWikiTreeSession(userId);
   // 403 rather than 401: a 401 would sign the user out of our app.
   if (!session) {
     res.status(403).json({ message: 'Sign in to WikiTree to see names from your family tree.' });
     return null;
   }
-  const cached = getWikiTreeNames(userId);
+  const cached = await getWikiTreeNames(userId);
   if (cached) {
     return cached;
   }
   try {
     const candidates = toNameCandidates(await fetchWikiTreeAncestors(session));
-    setWikiTreeNames(userId, candidates);
+    await setWikiTreeNames(userId, candidates);
     return candidates;
   } catch (err) {
     if (err instanceof WikiTreeTreeNotReadyError) {
@@ -200,7 +200,7 @@ nameRouter.get('/list', authenticateToken, async (req: Request, res: Response) =
 });
 
 // save name as favorite
-nameRouter.post('/', authenticateToken, (req: Request, res: Response) => {
+nameRouter.post('/', authenticateToken, async (req: Request, res: Response) => {
   const { name, gender } = req.body ?? {};
   if (typeof name !== 'string' || name.trim().length === 0) {
     res.status(400).json({ message: 'name is required' });
@@ -214,7 +214,7 @@ nameRouter.post('/', authenticateToken, (req: Request, res: Response) => {
     res.status(400).json({ message: 'gender must be "boy" or "girl"' });
     return;
   }
-  const favorites = addFavorite(req.user!.id, gender ? { name: name.trim(), gender } : { name: name.trim() });
+  const favorites = await addFavorite(req.user!.id, gender ? { name: name.trim(), gender } : { name: name.trim() });
   if (!favorites) {
     res.status(409).json({ message: 'name already in favorites' });
     return;
@@ -223,14 +223,14 @@ nameRouter.post('/', authenticateToken, (req: Request, res: Response) => {
 });
 
 // get list of favorites
-nameRouter.get('/favorites', authenticateToken, (req: Request, res: Response) => {
-  const favorites = listFavorites(req.user!.id);
+nameRouter.get('/favorites', authenticateToken, async (req: Request, res: Response) => {
+  const favorites = await listFavorites(req.user!.id);
   res.json({ favorites });
 });
 
 // remove a favorite
-nameRouter.delete('/favorites/:name', authenticateToken, (req: Request, res: Response) => {
-  const favorites = removeFavorite(req.user!.id, String(req.params.name));
+nameRouter.delete('/favorites/:name', authenticateToken, async (req: Request, res: Response) => {
+  const favorites = await removeFavorite(req.user!.id, String(req.params.name));
   if (!favorites) {
     res.status(404).json({ message: 'name is not in favorites' });
     return;
@@ -239,18 +239,18 @@ nameRouter.delete('/favorites/:name', authenticateToken, (req: Request, res: Res
 });
 
 // get the shortlist
-nameRouter.get('/shortlist', authenticateToken, (req: Request, res: Response) => {
-  res.json({ shortlist: getShortlist(req.user!.id) });
+nameRouter.get('/shortlist', authenticateToken, async (req: Request, res: Response) => {
+  res.json({ shortlist: await getShortlist(req.user!.id) });
 });
 
 // replace the shortlist
-nameRouter.put('/shortlist', authenticateToken, (req: Request, res: Response) => {
+nameRouter.put('/shortlist', authenticateToken, async (req: Request, res: Response) => {
   const { names } = req.body ?? {};
   if (!Array.isArray(names) || !names.every((n) => typeof n === 'string')) {
     res.status(400).json({ message: 'names must be a list of names' });
     return;
   }
-  const result = setShortlist(req.user!.id, names);
+  const result = await setShortlist(req.user!.id, names);
   if ('error' in result) {
     res.status(400).json({ message: result.error });
     return;
@@ -287,14 +287,14 @@ nameRouter.get('/roots/:name', authenticateToken, async (req: Request, res: Resp
 });
 
 // search names
-nameRouter.get('/search', authenticateToken, (req: Request, res: Response) => {
+nameRouter.get('/search', authenticateToken, async (req: Request, res: Response) => {
   const { q } = req.query;
   if (typeof q !== 'string' || q.trim().length === 0 || q.length > MAX_NAME_LENGTH) {
     res.status(400).json({ message: 'q is required' });
     return;
   }
   // Sample names plus the user's WikiTree names, if Discover already loaded them.
-  const candidates = [...fakeNameCandidates(), ...(getWikiTreeNames(req.user!.id) ?? [])];
+  const candidates = [...fakeNameCandidates(), ...((await getWikiTreeNames(req.user!.id)) ?? [])];
   res.json({ names: searchNames(candidates, q) });
 });
 

@@ -2,7 +2,7 @@ import { describe, expect, test } from '@jest/globals';
 import request from 'supertest';
 import app from '../service.ts';
 
-// The database is in memory and shared by every test in this file, so each test uses its own email.
+// The database is shared by every test in this file, so each test uses its own email.
 function newUser() {
   return {
     name: 'Pat',

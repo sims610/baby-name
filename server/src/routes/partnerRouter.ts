@@ -56,19 +56,19 @@ const partnerRouter = Object.assign(express.Router(), {
 });
 
 // get partner and invite code
-partnerRouter.get('/', authenticateToken, (req: Request, res: Response) => {
+partnerRouter.get('/', authenticateToken, async (req: Request, res: Response) => {
   const userId = req.user!.id;
-  res.json({ partner: getPartner(userId), inviteCode: getInviteCode(userId) });
+  res.json({ partner: await getPartner(userId), inviteCode: await getInviteCode(userId) });
 });
 
 // link with a partner
-partnerRouter.post('/', authenticateToken, (req: Request, res: Response) => {
+partnerRouter.post('/', authenticateToken, async (req: Request, res: Response) => {
   const { code } = req.body ?? {};
   if (typeof code !== 'string' || code.trim().length === 0 || code.length > 20) {
     res.status(400).json({ message: 'code is required' });
     return;
   }
-  const result = linkPartner(req.user!.id, code);
+  const result = await linkPartner(req.user!.id, code);
   if ('error' in result) {
     res.status(result.status).json({ message: result.error });
     return;
@@ -77,14 +77,14 @@ partnerRouter.post('/', authenticateToken, (req: Request, res: Response) => {
 });
 
 // unlink
-partnerRouter.delete('/', authenticateToken, (req: Request, res: Response) => {
-  unlinkPartner(req.user!.id);
+partnerRouter.delete('/', authenticateToken, async (req: Request, res: Response) => {
+  await unlinkPartner(req.user!.id);
   res.json({ partner: null });
 });
 
 // compare favorites
-partnerRouter.get('/matches', authenticateToken, (req: Request, res: Response) => {
-  const result = comparePartnerFavorites(req.user!.id);
+partnerRouter.get('/matches', authenticateToken, async (req: Request, res: Response) => {
+  const result = await comparePartnerFavorites(req.user!.id);
   if (!result) {
     res.status(404).json({ message: 'Link with a partner to see your matches' });
     return;

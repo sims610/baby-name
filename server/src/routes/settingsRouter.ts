@@ -37,17 +37,17 @@ const settingsRouter = Object.assign(express.Router(), {
   ] as EndpointDoc[],
 });
 
-settingsRouter.get('/', authenticateToken, (req: Request, res: Response) => {
-  res.json({ favoritesVisibility: getVisibility(req.user!.id) });
+settingsRouter.get('/', authenticateToken, async (req: Request, res: Response) => {
+  res.json({ favoritesVisibility: await getVisibility(req.user!.id) });
 });
 
-settingsRouter.put('/', authenticateToken, (req: Request, res: Response) => {
+settingsRouter.put('/', authenticateToken, async (req: Request, res: Response) => {
   const { favoritesVisibility } = req.body ?? {};
   if (!VISIBILITIES.includes(favoritesVisibility)) {
     res.status(400).json({ message: `favoritesVisibility must be one of ${VISIBILITIES.join(', ')}` });
     return;
   }
-  setVisibility(req.user!.id, favoritesVisibility);
+  await setVisibility(req.user!.id, favoritesVisibility);
   res.json({ favoritesVisibility });
 });
 

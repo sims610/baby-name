@@ -13,7 +13,7 @@ const girlNames = ancestors.filter((p) => p.display.gender === 'Female').map((p)
 // The name is random, so each test asks several times instead of trusting a single pick.
 const TRIES = 20;
 
-// The database is in memory and shared by every test in this file, so each user gets its own email.
+// The database is shared by every test in this file, so each user gets its own email.
 async function registerUser(): Promise<string> {
   const res = await request(app)
     .post('/api/auth')
