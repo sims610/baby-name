@@ -12,10 +12,16 @@ try {
   throw error;
 }
 await deleteExpiredRecords();
-await seedDemoAccounts();
+// The demo passwords are public, so these accounts must never exist in production.
+const seedDemo = process.env.NODE_ENV !== 'production';
+if (seedDemo) {
+  await seedDemoAccounts();
+}
 app.listen(port, () => {
   console.log(`Server started on port ${port}`);
-  console.log(`Demo accounts: ${DEMO_ACCOUNT.email} and ${DEMO_PARTNER_ACCOUNT.email} (password ${DEMO_ACCOUNT.password})`);
+  if (seedDemo) {
+    console.log(`Demo accounts: ${DEMO_ACCOUNT.email} and ${DEMO_PARTNER_ACCOUNT.email} (password ${DEMO_ACCOUNT.password})`);
+  }
   console.log(
     process.env.RESEND_API_KEY
       ? `Email: sending through Resend as ${process.env.EMAIL_FROM ?? 'the default sender'}`

@@ -3,6 +3,7 @@ dist
 coverage
 .env
 .env.example
+.env.production
 architecture.md
 BUGS.md
 .DS_Store

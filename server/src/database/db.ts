@@ -27,7 +27,8 @@ function connectionOptions(): PoolOptions {
     }
     return { uri: `${LOCAL_SERVER_URL}/littleroots` };
   }
-  return { uri, ...(process.env.DATABASE_SSL === 'true' ? { ssl: { rejectUnauthorized: true } } : {}) };
+  // RDS certificates aren't in Node's default trust list; mysql2 includes them in this profile.
+  return { uri, ...(process.env.DATABASE_SSL === 'true' ? { ssl: 'Amazon RDS' } : {}) };
 }
 
 const options = connectionOptions();
@@ -126,20 +127,22 @@ const SCHEMA = [
 ];
 
 /**
- * Creates the tables if they don't exist yet. Call once before serving requests.
- * In tests it also creates the worker's database.
+ * Creates the database and its tables if they don't exist yet, so a first run on
+ * an empty server works. Call once before serving requests.
  */
 export async function initDatabase(): Promise<void> {
-  if (isTest) {
-    const url = new URL(options.uri!);
-    const database = url.pathname.slice(1);
-    url.pathname = '/';
-    const admin = await mysql.createConnection({ uri: url.toString() });
-    try {
-      await admin.query(`CREATE DATABASE IF NOT EXISTS \`${database}\``);
-    } finally {
-      await admin.end();
-    }
+  const url = new URL(options.uri!);
+  const database = decodeURIComponent(url.pathname.slice(1));
+  if (!database) {
+    throw new Error('The database URL must end with a database name, like .../littleroots');
+  }
+  // Connect without choosing a database, since it may not exist yet.
+  url.pathname = '/';
+  const admin = await mysql.createConnection({ ...options, uri: url.toString() });
+  try {
+    await admin.query(`CREATE DATABASE IF NOT EXISTS ${admin.escapeId(database)}`);
+  } finally {
+    await admin.end();
   }
   for (const statement of SCHEMA) {
     await db.query(statement);
