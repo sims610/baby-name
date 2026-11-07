@@ -56,7 +56,8 @@ const routes: RouteObject[] = [
 ];
 
 // Created once, outside the component, so it isn't rebuilt on every render.
-const router = createBrowserRouter(routes);
+// The basename lets the app run from a subpath, as it does on GitHub Pages.
+const router = createBrowserRouter(routes, { basename: import.meta.env.BASE_URL });
 
 /** The whole app: shared providers around the router. */
 export default function App() {

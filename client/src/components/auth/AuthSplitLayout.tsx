@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import styles from "@/scss/components/AuthSplitLayout.module.scss";
 
 // Served from client/public.
-const DEFAULT_HERO_IMAGE = "/baby-hero.jpg";
+const DEFAULT_HERO_IMAGE = `${import.meta.env.BASE_URL}baby-hero.jpg`;
 const DEFAULT_HERO_ALT = "Baby sitting on a white bed";
 
 interface AuthSplitLayoutProps {

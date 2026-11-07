@@ -73,8 +73,9 @@ export function useWikiTreeLogin(): WikiTreeLoginState {
   }, [authcode, authRequest, navigate, pathname]);
 
   const login = useCallback(() => {
-    window.location.assign(wikiTreeLoginUrl(`${window.location.origin}${pathname}`));
-  }, [pathname]);
+    // The browser's full path, because the router's pathname leaves out the subpath.
+    window.location.assign(wikiTreeLoginUrl(`${window.location.origin}${window.location.pathname}`));
+  }, []);
 
   const logout = useCallback(() => {
     // End the server's WikiTree session and the browser's, then show the sign-in

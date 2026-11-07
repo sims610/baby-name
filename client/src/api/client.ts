@@ -25,6 +25,9 @@ export interface RequestOptions {
 
 const DEFAULT_ERROR_MESSAGE = "Something went wrong. Please try again.";
 
+// Where the API runs when it isn't on the same address as the client, set when building.
+const API_URL = import.meta.env.VITE_API_URL ?? "";
+
 /**
  * Single entry point for calls to our API. Paths are relative to `/api`
  * (proxied to the server in development by vite.config.ts).
@@ -41,7 +44,7 @@ export async function apiRequest<T>(path: string, { method = "GET", body, token,
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${API_URL}/api${path}`, {
     method,
     headers,
     body: body === undefined ? undefined : JSON.stringify(body),

@@ -43,7 +43,7 @@ export default function Header() {
 
       <div className="site-header__main">
         <Link to="/" className="site-header__logo">
-          <img src="/LittleRoots_Logo_Title.png" alt="LittleRoots" />
+          <img src={`${import.meta.env.BASE_URL}LittleRoots_Logo_Title.png`} alt="LittleRoots" />
         </Link>
 
         <nav className="site-header__nav" aria-label="Main">

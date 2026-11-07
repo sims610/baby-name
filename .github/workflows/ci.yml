@@ -97,6 +97,8 @@ jobs:
             const config = {
               DATABASE_URL: `mysql://${user}:${password}@${DB_HOSTNAME}:3306/littleroots`,
               RESEND_API_KEY,
+              APP_URL: "https://sims610.github.io/baby-name",
+              CLIENT_ORIGINS: "https://sims610.github.io",
             };
             // Without a Resend key, the server prints emails to its log instead of sending them.
             const lines = Object.entries(config).filter(([, value]) => value).map(([key, value]) => `${key}="${value}"`);
@@ -123,5 +125,44 @@ jobs:
       - name: Build and push container image
         env:
           IMAGE: ${{ steps.login-ecr.outputs.registry }}/littleroots-service
-        run: docker build --platform=linux/arm64 -t "$IMAGE:latest" --push .
-   
+        run: docker build --platform=linux/arm64 --provenance=false -t "$IMAGE:latest" --push .
+
+      - name: Deploy new container
+        run: aws ecs update-service --cluster littleroots-service --service littleroots-service --force-new-deployment
+
+  deploy-client:
+    name: Deploy client to GitHub Pages
+    needs: build
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24.x'
+
+      - name: Build client
+        env:
+          VITE_API_URL: https://littleroots-service.byucanadian.click
+        run: |
+          npm ci
+          npm run build -w client -- --base=/baby-name/
+          cp client/dist/index.html client/dist/404.html
+
+      - name: Upload pages artifact
+        uses: actions/upload-pages-artifact@v5.0.0
+        with:
+          path: client/dist/
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5.0.1

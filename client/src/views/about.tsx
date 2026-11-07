@@ -86,7 +86,7 @@ export default function About() {
 
           <div className="about-hero-image">
             <img
-              src="/about-hero.jpg"
+              src={`${import.meta.env.BASE_URL}about-hero.jpg`}
               alt="Baby wrapped in a white blanket"
             />
           </div>

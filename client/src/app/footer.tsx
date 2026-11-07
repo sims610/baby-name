@@ -87,7 +87,7 @@ export default function Footer() {
         <div className="site-footer__brand">
           <Link to="/" className="site-footer__logo">
             <img
-              src="/LittleRoots_Logo.png"
+              src={`${import.meta.env.BASE_URL}LittleRoots_Logo.png`}
               alt="LittleRoots"
             />
           </Link>

@@ -118,7 +118,7 @@ export default function Home() {
           </div>
 
           <div className="home-hero-visual">
-            <img src="/LittleRoots_Home.png" alt="A smiling baby lying on a white blanket" />
+            <img src={`${import.meta.env.BASE_URL}LittleRoots_Home.png`} alt="A smiling baby lying on a white blanket" />
 
             {/* A sample name card, to show what the app suggests. Decorative. */}
             <div className="home-preview-card" aria-hidden="true">
