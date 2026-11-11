@@ -1,5 +1,7 @@
 [![CI Pipeline](https://github.com/sims610/baby-name/actions/workflows/ci.yml/badge.svg)](https://github.com/sims610/baby-name/actions/workflows/ci.yml)
-![Coverage](https://raw.githubusercontent.com/sims610/baby-name/badges/coverage.svg)
+![Frontend Coverage](https://raw.githubusercontent.com/sims610/baby-name/badges/frontend-coverage.svg)
+![Backend Coverage](https://raw.githubusercontent.com/sims610/baby-name/badges/backend-coverage.svg)
+
 
 # Overview
 This project will be a FamilySearch based baby name generator web app. It will suggest baby names to you that are unique to your ancestry.

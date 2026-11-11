@@ -44,16 +44,29 @@ jobs:
       - name: Lint
         run: npm run lint -w server
 
-      - name: Tests
+      - name: Backend tests
         run: npm run test:coverage -w server
 
-      - name: Generate coverage badge
-        run: |
-          coverage=$(jq '.total.lines.pct' server/coverage/coverage-summary.json)
-          color=$(awk -v c="$coverage" 'BEGIN { print (c < 80 ? "red" : "green") }')
-          curl -sf "https://img.shields.io/badge/coverage-${coverage}%25-${color}" -o /tmp/coverage.svg
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+        working-directory: client
 
-      - name: Push badge to badges branch
+      - name: Frontend tests
+        run: npm run test:coverage -w client
+
+      - name: Generate coverage badges
+        run: |
+          make_badge() {
+            local label="$1" summary="$2" out="$3"
+            local coverage color
+            coverage=$(jq '.total.lines.pct' "$summary")
+            color=$(awk -v c="$coverage" 'BEGIN { print (c < 80 ? "red" : "green") }')
+            curl -sf "https://img.shields.io/badge/${label}-${coverage}%25-${color}" -o "$out"
+          }
+          make_badge "backend%20coverage" server/coverage/coverage-summary.json /tmp/backend-coverage.svg
+          make_badge "frontend%20coverage" client/coverage/coverage-summary.json /tmp/frontend-coverage.svg
+
+      - name: Push badges to badges branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -63,12 +76,13 @@ jobs:
             git checkout --orphan badges
             git rm -rf --quiet .
           fi
-          cp /tmp/coverage.svg coverage.svg
-          git add coverage.svg
+          cp /tmp/backend-coverage.svg backend-coverage.svg
+          cp /tmp/frontend-coverage.svg frontend-coverage.svg
+          git add backend-coverage.svg frontend-coverage.svg
           if git diff --cached --quiet; then
-            echo "Coverage badge unchanged"
+            echo "Coverage badges unchanged"
           else
-            git commit -m "Update coverage badge"
+            git commit -m "Update coverage badges"
             git push origin badges
           fi
 
