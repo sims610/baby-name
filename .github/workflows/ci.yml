@@ -113,8 +113,8 @@ jobs:
             const config = {
               DATABASE_URL: `mysql://${user}:${password}@${DB_HOSTNAME}:3306/littleroots`,
               RESEND_API_KEY,
-              APP_URL: "https://sims610.github.io/baby-name",
-              CLIENT_ORIGINS: "https://sims610.github.io",
+              APP_URL: "https://www.little-roots.app",
+              CLIENT_ORIGINS: "https://www.little-roots.app,https://little-roots.app,https://sims610.github.io",
             };
             // Without a Resend key, the server prints emails to its log instead of sending them.
             const lines = Object.entries(config).filter(([, value]) => value).map(([key, value]) => `${key}="${value}"`);
@@ -171,7 +171,7 @@ jobs:
           VITE_API_URL: https://littleroots-service.byucanadian.click
         run: |
           npm ci
-          npm run build -w client -- --base=/baby-name/
+          npm run build -w client -- --base=/
           cp client/dist/index.html client/dist/404.html
 
       - name: Upload pages artifact
