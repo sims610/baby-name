@@ -3,8 +3,9 @@ import type { ReactNode } from "react";
 import { ApiError, apiRequest } from "@/api/client";
 import type { RequestOptions } from "@/api/client";
 import { logout } from "@/api/auth";
+import { forgetPushOnSignOut, resumePush } from "@/notifications/push";
 import { AuthContext } from "@/auth/AuthContext";
-import type { AuthContextValue, SignInOptions } from "@/auth/AuthContext";
+import type { AuthContextValue, SignInOptions, SignOutOptions } from "@/auth/AuthContext";
 import {
   SESSION_KEY,
   clearAuthStorage,
@@ -52,13 +53,29 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
     setSession(next);
   }, []);
 
-  const signOut = useCallback(async () => {
-    clearSession();
+  const signOut = useCallback(
+    async ({ stopNotifications = false }: SignOutOptions = {}) => {
+      clearSession();
+      if (token) {
+        // The local session is already gone; a failed server call shouldn't block logout.
+        // Notifications keep coming after an idle timeout, so a partner's match can bring
+        // the user back. Only a sign-out they chose turns them off (first, while the token works).
+        if (stopNotifications) {
+          await forgetPushOnSignOut(token).catch(() => undefined);
+        }
+        await logout(token).catch(() => undefined);
+      }
+    },
+    [clearSession, token],
+  );
+
+  // Notifications are on by default in the installed app: once this device has allowed
+  // them, every sign-in subscribes it for the user again, without asking.
+  useEffect(() => {
     if (token) {
-      // The local session is already gone; a failed server call shouldn't block logout.
-      await logout(token).catch(() => undefined);
+      resumePush(token).catch((err: unknown) => console.error("Couldn't resume notifications:", err));
     }
-  }, [clearSession, token]);
+  }, [token]);
 
   // Keep tabs in sync: signing in or out in one tab updates the others.
   useEffect(() => {

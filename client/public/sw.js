@@ -3,7 +3,7 @@
 // never cached, so names, favorites and sign-in always come from the server.
 
 // Bump this to throw away everything cached by older versions.
-const CACHE = "littleroots-v1";
+const CACHE = "littleroots-v2";
 const APP_SHELL = ["/", "/manifest.webmanifest", "/favicon.png", "/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
@@ -65,6 +65,46 @@ self.addEventListener("fetch", (event) => {
         return cached;
       }
       return fresh;
+    }),
+  );
+});
+
+// ---- Push notifications (sent by the API's push.ts, e.g. "It's a match!") ----
+
+self.addEventListener("push", (event) => {
+  let message = {};
+  try {
+    message = event.data ? event.data.json() : {};
+  } catch {
+    message = { body: event.data ? event.data.text() : "" };
+  }
+  const { title = "LittleRoots", body = "", url = "/", tag } = message;
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      tag,
+      icon: "/icon-192.png",
+      badge: "/favicon.png",
+      data: { url },
+    }),
+  );
+});
+
+// Clicking a notification opens its page, reusing an open LittleRoots window if there is one.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url ?? "/", self.location.origin);
+  if (target.origin !== self.location.origin) {
+    return;
+  }
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(async (windows) => {
+      const open = windows.find((client) => new URL(client.url).origin === target.origin);
+      if (open) {
+        await open.focus();
+        return open.navigate(target.href).catch(() => self.clients.openWindow(target.href));
+      }
+      return self.clients.openWindow(target.href);
     }),
   );
 });

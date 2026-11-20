@@ -535,6 +535,57 @@ export async function comparePartnerFavorites(userId: string): Promise<PartnerMa
   };
 }
 
+/**
+ * The partner to tell when the user just liked `name`: their partner, if the partner
+ * already liked it too. Null when there's no partner, no match, or the user keeps
+ * their favorites private (then the partner can't see their matches either).
+ */
+export async function findPartnerToNotify(userId: string, name: string): Promise<string | null> {
+  const partnerId = await findPartnerId(userId);
+  if (!partnerId || (await getVisibility(userId)) === 'private') {
+    return null;
+  }
+  // The name column ignores case, so "olivia" matches "Olivia".
+  const [rows] = await db.execute<RowDataPacket[]>('SELECT 1 FROM favorites WHERE user_id = ? AND name = ? LIMIT 1', [
+    partnerId,
+    name,
+  ]);
+  return rows.length > 0 ? partnerId : null;
+}
+
+// ---- Push notifications (Web Push subscriptions) ----
+
+export interface StoredPushSubscription {
+  endpoint: string;
+  keys: { p256dh: string; auth: string };
+}
+
+/** Saves the browser's subscription for the user, taking it over if another user had it. */
+export async function savePushSubscription(userId: string, subscription: StoredPushSubscription): Promise<void> {
+  await db.execute(
+    `INSERT INTO push_subscriptions (endpoint, user_id, p256dh, auth, created_at) VALUES (?, ?, ?, ?, ?) AS new
+     ON DUPLICATE KEY UPDATE user_id = new.user_id, p256dh = new.p256dh, auth = new.auth, created_at = new.created_at`,
+    [subscription.endpoint, userId, subscription.keys.p256dh, subscription.keys.auth, Date.now()],
+  );
+}
+
+/** Forgets a subscription. With a userId, only if it belongs to that user. */
+export async function deletePushSubscription(endpoint: string, userId?: string): Promise<void> {
+  if (userId) {
+    await db.execute('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?', [endpoint, userId]);
+  } else {
+    await db.execute('DELETE FROM push_subscriptions WHERE endpoint = ?', [endpoint]);
+  }
+}
+
+export async function listPushSubscriptions(userId: string): Promise<StoredPushSubscription[]> {
+  const [rows] = await db.execute<({ endpoint: string; p256dh: string; auth: string } & RowDataPacket)[]>(
+    'SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?',
+    [userId],
+  );
+  return rows.map((row) => ({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } }));
+}
+
 /** Origin and meaning of a first name, or null if we don't know it yet. */
 export function getNameInfo(name: string): NameInfo | null {
   const key = Object.keys(nameInfo).find((n) => sameName(n, name));

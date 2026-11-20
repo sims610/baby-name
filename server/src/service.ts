@@ -6,6 +6,7 @@ import { contactRouter } from './routes/contactRouter.ts';
 import { wikitreeRouter } from './routes/wikitreeRouter.ts';
 import { partnerRouter } from './routes/partnerRouter.ts';
 import { settingsRouter } from './routes/settingsRouter.ts';
+import { pushRouter } from './routes/pushRouter.ts';
 
 interface HttpError extends Error {
   statusCode?: number;
@@ -55,6 +56,7 @@ apiRouter.use('/contact', contactRouter);
 apiRouter.use('/wikitree', wikitreeRouter);
 apiRouter.use('/partner', partnerRouter);
 apiRouter.use('/settings', settingsRouter);
+apiRouter.use('/push', pushRouter);
 
 apiRouter.use('/docs', (req: Request, res: Response) => {
   res.json({
@@ -63,6 +65,7 @@ apiRouter.use('/docs', (req: Request, res: Response) => {
       ...nameRouter.docs,
       ...partnerRouter.docs,
       ...settingsRouter.docs,
+      ...pushRouter.docs,
       ...contactRouter.docs,
       ...wikitreeRouter.docs,
     ],

@@ -12,6 +12,8 @@ import NameCard from "@/components/favorites/NameCard";
 import type { SavedName } from "@/components/favorites/NameCard";
 import { nameDetailPath } from "@/components/favorites/nameDetailPath";
 import { useNameDictionary, withDetails } from "@/components/favorites/useNameDictionary";
+import { dismissNudge, isNudgeDismissed, offerPush } from "@/notifications/push";
+import { usePushNotifications } from "@/notifications/usePushNotifications";
 import "./matches.css";
 
 const initial = (name: string) => name.trim()[0]?.toUpperCase() ?? "?";
@@ -128,22 +130,62 @@ function LiveMatches({ you }: { you: string }) {
   // The server lists favorites oldest first; show the newest first like everywhere else.
   const newest = (names: FavoriteName[]) => [...names].reverse();
   return (
-    <MatchesBoard
-      you={you}
-      partnerName={result.partner.name}
-      status={`Linked with ${result.partner.email}`}
-      shared={result.shared}
-      matches={newest(result.matches)}
-      onlyYou={newest(result.onlyYou)}
-      onlyPartner={newest(result.onlyPartner)}
-      onUnlink={() => unlink(result.partner.name)}
-    />
+    <>
+      <NotificationNudge partnerName={firstName(result.partner.name)} />
+      <MatchesBoard
+        you={you}
+        partnerName={result.partner.name}
+        status={`Linked with ${result.partner.email}`}
+        shared={result.shared}
+        matches={newest(result.matches)}
+        onlyYou={newest(result.onlyYou)}
+        onlyPartner={newest(result.onlyPartner)}
+        onUnlink={() => unlink(result.partner.name)}
+      />
+    </>
+  );
+}
+
+/**
+ * Fallback ask for notifications, in the installed app only. Most people are asked when
+ * they click Link or Copy; this catches a partner who shared their code without either.
+ */
+function NotificationNudge({ partnerName }: { partnerName: string }) {
+  const { state, busy, error, enable } = usePushNotifications();
+  const [dismissed, setDismissed] = useState(isNudgeDismissed);
+
+  if (dismissed || (state !== "prompt" && !error)) return null;
+
+  const close = () => {
+    dismissNudge();
+    setDismissed(true);
+  };
+
+  return (
+    <section className="matches-nudge theme-default" aria-labelledby="matches-nudge-title">
+      <span className="matches-nudge-icon" aria-hidden="true">
+        🔔
+      </span>
+      <div className="matches-nudge-text">
+        <h2 id="matches-nudge-title">Never miss a match</h2>
+        <p>Get a notification the moment {partnerName} likes a name you love.</p>
+        {error && <Notice variant="error">{error}</Notice>}
+      </div>
+      <div className="matches-nudge-actions">
+        <button type="button" className="matches-btn theme-default" disabled={busy} onClick={() => void enable()}>
+          {busy ? "Turning on…" : "Turn on"}
+        </button>
+        <button type="button" className="matches-nudge-dismiss" onClick={close}>
+          Not now
+        </button>
+      </div>
+    </section>
   );
 }
 
 /** Not linked yet: share your code, or enter your partner's. */
 function LinkPartner({ you, inviteCode, onLinked }: { you: string; inviteCode: string; onLinked: () => void }) {
-  const { authRequest } = useAuth();
+  const { token, authRequest } = useAuth();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [linking, setLinking] = useState(false);
@@ -152,6 +194,8 @@ function LinkPartner({ you, inviteCode, onLinked }: { you: string; inviteCode: s
   async function handleSubmit(e: SubmitEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!code.trim()) return;
+    // Linking is when match alerts start to matter. Asked first, while still inside the click.
+    offerPush(token);
     setLinking(true);
     setError(null);
     try {
@@ -169,6 +213,8 @@ function LinkPartner({ you, inviteCode, onLinked }: { you: string; inviteCode: s
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+    // Sharing the code is this partner's only click before linking: ask for match alerts now.
+    offerPush(token);
   };
 
   return (

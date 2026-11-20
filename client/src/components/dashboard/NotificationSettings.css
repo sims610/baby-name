@@ -1,0 +1,112 @@
+.notify {
+  margin-bottom: 55px;
+  padding: 28px 30px;
+  border: 1px solid #ececec;
+  border-radius: 22px;
+  background: #ffffff;
+}
+
+.notify-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.notify-text h2 {
+  margin: 0 0 6px;
+  font-size: 19px;
+  font-weight: 600;
+  color: #241f1f;
+}
+
+.notify-text p {
+  margin: 0;
+  font-size: 13px;
+  color: #888;
+}
+
+.notify-switch {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+/* The track is the visible control; the native checkbox stays for keyboard and screen readers. */
+.notify-switch input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.notify-switch-track {
+  position: relative;
+  width: 46px;
+  height: 26px;
+  border-radius: 13px;
+  background: #e3e3e3;
+  transition: background-color 0.2s ease;
+}
+
+.notify-switch-track::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.notify-switch input:checked + .notify-switch-track {
+  background: var(--theme-accent);
+}
+
+.notify-switch input:checked + .notify-switch-track::after {
+  transform: translateX(20px);
+}
+
+.notify-switch input:focus-visible + .notify-switch-track {
+  outline: 3px solid var(--theme-accent);
+  outline-offset: 3px;
+}
+
+.notify-switch:has(input:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.notify-switch-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #302b28;
+}
+
+.notify-message {
+  margin-top: 16px;
+}
+
+@media (max-width: 768px) {
+  .notify {
+    padding: 24px 22px;
+  }
+
+  .notify-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .notify-switch-track,
+  .notify-switch-track::after {
+    transition: none;
+  }
+}

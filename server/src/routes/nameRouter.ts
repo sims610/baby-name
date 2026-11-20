@@ -22,6 +22,7 @@ import { fakeNameCandidates, fakePartnerNameCandidates, relationName, toNameCand
 import type { NameCandidate } from '../names.ts';
 import { fetchWikiTreeAncestors, WikiTreeTreeNotReadyError } from '../wikitree.ts';
 import { authenticateToken } from './authRouter.ts';
+import { notifyPartnerOfMatch } from '../push.ts';
 
 interface EndpointDoc {
   method: string;
@@ -231,6 +232,8 @@ nameRouter.post('/', authenticateToken, async (req: Request, res: Response) => {
     res.status(409).json({ message: 'name already in favorites' });
     return;
   }
+  // If the partner liked this name too, it's a new match: let them know.
+  notifyPartnerOfMatch(req.user!, name.trim());
   res.status(201).json({ favorites });
 });
 

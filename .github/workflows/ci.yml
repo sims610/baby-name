@@ -105,14 +105,20 @@ jobs:
           DB_USERNAME: ${{ secrets.DB_USERNAME }}
           DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
         run: |
           node -e '
-            const { DB_HOSTNAME, DB_USERNAME, DB_PASSWORD, RESEND_API_KEY } = process.env;
+            const { DB_HOSTNAME, DB_USERNAME, DB_PASSWORD, RESEND_API_KEY, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY } = process.env;
             const user = encodeURIComponent(DB_USERNAME);
             const password = encodeURIComponent(DB_PASSWORD);
             const config = {
               DATABASE_URL: `mysql://${user}:${password}@${DB_HOSTNAME}:3306/littleroots`,
               RESEND_API_KEY,
+              // Web Push for match notifications; without the keys, pushes are only logged.
+              VAPID_PUBLIC_KEY,
+              VAPID_PRIVATE_KEY,
+              VAPID_SUBJECT: "mailto:hello@little-roots.app",
               APP_URL: "https://www.little-roots.app",
               CLIENT_ORIGINS: "https://www.little-roots.app,https://little-roots.app,https://sims610.github.io",
             };

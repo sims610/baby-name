@@ -36,7 +36,7 @@ export default function IdleSessionManager() {
   }, [signOut, goToLogin]);
 
   const handleLogOut = useCallback(() => {
-    void signOut();
+    void signOut({ stopNotifications: true });
     goToLogin("signed-out");
   }, [signOut, goToLogin]);
 

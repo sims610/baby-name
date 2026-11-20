@@ -7,6 +7,11 @@ export interface SignInOptions {
   remember?: boolean;
 }
 
+export interface SignOutOptions {
+  /** Also turn off push notifications on this device (for a sign-out the user chose). */
+  stopNotifications?: boolean;
+}
+
 export interface AuthContextValue {
   user: User | null;
   token: string | null;
@@ -16,8 +21,12 @@ export interface AuthContextValue {
    * when the browser closes; pass `remember: true` to keep it across restarts.
    */
   signIn: (session: Session, options?: SignInOptions) => void;
-  /** Ends the server session (best effort) and clears the local one. */
-  signOut: () => Promise<void>;
+  /**
+   * Ends the server session (best effort) and clears the local one. Pass
+   * `stopNotifications: true` when the user chose to sign out, so this device stops
+   * getting their match notifications. An idle timeout leaves them on.
+   */
+  signOut: (options?: SignOutOptions) => Promise<void>;
   /**
    * `apiRequest` with the current token attached. A 401 response means the
    * server no longer recognises the token, so the local session is cleared.

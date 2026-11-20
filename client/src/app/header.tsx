@@ -114,7 +114,7 @@ function UserMenu({ user }: { user: User }) {
 
   function handleLogOut() {
     setOpen(false);
-    void signOut();
+    void signOut({ stopNotifications: true });
     const state: LoginLocationState = { reason: "signed-out" };
     navigate(LOGIN_PATH, { replace: true, state });
   }

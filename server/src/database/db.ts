@@ -119,6 +119,18 @@ const SCHEMA = [
     CONSTRAINT wikitree_names_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 
+  // Browsers that asked for push notifications (Web Push). One row per browser: the
+  // endpoint is unique, so signing in as someone else on that browser moves it to them.
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint   VARCHAR(1000) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+    user_id    CHAR(36)      NOT NULL,
+    p256dh     VARCHAR(255)  NOT NULL,
+    auth       VARCHAR(255)  NOT NULL,
+    created_at BIGINT        NOT NULL,
+    INDEX push_subscriptions_user (user_id),
+    CONSTRAINT push_subscriptions_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
   // Messages from the Contact form. Kept if the sender's account is deleted.
   `CREATE TABLE IF NOT EXISTS contact_messages (
     id          CHAR(36)      NOT NULL PRIMARY KEY,

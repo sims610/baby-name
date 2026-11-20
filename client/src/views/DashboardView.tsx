@@ -6,6 +6,7 @@ import type { WikiTreeLoginState } from "@/auth/useWikiTreeLogin";
 import DemoModeToggle from "@/components/common/DemoModeToggle";
 import Notice from "@/components/common/Notice";
 import PageTopbar from "@/components/common/PageTopbar";
+import NotificationSettings from "@/components/dashboard/NotificationSettings";
 import PrivacySettings from "@/components/dashboard/PrivacySettings";
 import { nameDetailPath } from "@/components/favorites/nameDetailPath";
 import TopPicks, { ShortlistRemoveZone, startFavoriteDrag } from "@/components/favorites/TopPicks";
@@ -97,6 +98,8 @@ export default function DashboardView() {
         </div>
 
         <PrivacySettings />
+
+        <NotificationSettings />
 
         <section aria-labelledby="dashboard-quick-title">
           <h2 id="dashboard-quick-title" className="dashboard-section-title">
