@@ -15,6 +15,11 @@ const faqs = [
       "No. If your tree lives on Ancestry, FamilySearch, MyHeritage, Gramps or another app, export it as a GEDCOM (.ged) file and import it on Discover. The file is read on your device; we only keep your ancestors' names and birth years. Just want to look around first? Turn on Demo mode on Discover to try names from a sample family.",
   },
   {
+    question: "How do I get a GEDCOM file from FamilySearch?",
+    answer:
+      "FamilySearch doesn't offer a GEDCOM download on its website. Instead, bring your tree into a free FamilySearch-approved program such as RootsMagic Essentials or Ancestral Quest, export it from there as a GEDCOM (.ged) file, then import it on Discover. Ten generations of ancestors is all LittleRoots uses.",
+  },
+  {
     question: "Why don't I see names from my tree yet?",
     answer:
       "Your tree needs at least a parent or grandparent added, and for an imported file, make sure you picked yourself as the person the tree is about. Brand-new WikiTree profiles can also take a little while before WikiTree shares their family connections. Demo mode works in the meantime.",
