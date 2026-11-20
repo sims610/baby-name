@@ -7,17 +7,17 @@ const faqs = [
   {
     question: "How does LittleRoots suggest names?",
     answer:
-      "Sign in with WikiTree and we read your direct ancestors, up to ten generations back. Their first names become your suggestions, tidied up (no \"Unknown\" or placeholder names) and shown with their origin and meaning when we know them.",
+      "Sign in with WikiTree, or import a GEDCOM file from another genealogy site, and we read your direct ancestors, up to ten generations back. Their first names become your suggestions, tidied up (no \"Unknown\" or placeholder names) and shown with their origin and meaning when we know them.",
   },
   {
     question: "Do I need a WikiTree account?",
     answer:
-      "To use your own family tree, yes. WikiTree is free to join. Just want to look around first? Turn on Demo mode on Discover to try names from a sample family.",
+      "No. If your tree lives on Ancestry, FamilySearch, MyHeritage, Gramps or another app, export it as a GEDCOM (.ged) file and import it on Discover. The file is read on your device; we only keep your ancestors' names and birth years. Just want to look around first? Turn on Demo mode on Discover to try names from a sample family.",
   },
   {
     question: "Why don't I see names from my tree yet?",
     answer:
-      "Your WikiTree profile needs at least a parent or grandparent added. Brand-new profiles can also take a little while before WikiTree shares their family connections. Demo mode works in the meantime.",
+      "Your tree needs at least a parent or grandparent added, and for an imported file, make sure you picked yourself as the person the tree is about. Brand-new WikiTree profiles can also take a little while before WikiTree shares their family connections. Demo mode works in the meantime.",
   },
   {
     question: "How do favorites and the top 3 work?",

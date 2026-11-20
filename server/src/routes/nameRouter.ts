@@ -16,6 +16,7 @@ import {
   wikiTreeNamesNeedRefresh,
   getPartnerWikiTreeNames,
   getPartner,
+  getGedcomImport,
 } from '../database/database.ts';
 import type { NameGender, NameRoot } from 'shared';
 import { fakeNameCandidates, fakePartnerNameCandidates, relationName, toNameCandidates } from '../names.ts';
@@ -40,7 +41,7 @@ const nameRouter = Object.assign(express.Router(), {
       path: '/api/name?gender=boy|girl&source=demo|wikitree',
       requiresAuth: true,
       description:
-        'Generate a random name. Omit gender for either. source=wikitree uses your WikiTree ancestors plus those of your linked partner (sign in first); demo (the default) uses sample data, plus a sample partner tree once you link a partner.',
+        'Generate a random name. Omit gender for either. source=wikitree uses your own tree (WikiTree ancestors, or an imported GEDCOM file) plus that of your linked partner; demo (the default) uses sample data, plus a sample partner tree once you link a partner.',
       example: `curl 'localhost:3000/api/name?gender=girl&source=wikitree' -H 'Authorization: Bearer abc123'`,
       response: { name: 'Hazel', gender: 'girl', origin: 'English', meaning: 'Hazel tree' },
     },
@@ -49,7 +50,7 @@ const nameRouter = Object.assign(express.Router(), {
       path: '/api/name/list?gender=boy|girl&source=demo|wikitree',
       requiresAuth: true,
       description:
-        'List every name once, in random order. Omit gender for both. source=wikitree uses your WikiTree ancestors plus those of your linked partner (sign in first); demo (the default) uses sample data, plus a sample partner tree once you link a partner.',
+        'List every name once, in random order. Omit gender for both. source=wikitree uses your own tree (WikiTree ancestors, or an imported GEDCOM file) plus that of your linked partner; demo (the default) uses sample data, plus a sample partner tree once you link a partner.',
       example: `curl 'localhost:3000/api/name/list?gender=girl&source=wikitree' -H 'Authorization: Bearer abc123'`,
       response: { names: [{ name: 'Hazel', gender: 'girl', origin: 'English', meaning: 'Hazel tree', tree: 'partner' }] },
     },
@@ -130,7 +131,7 @@ function isNameGender(value: unknown): value is NameGender {
 /**
  * The names to pick from, per `?source=`: sample data for `demo` (the default, plus a
  * sample partner tree when the user has a partner), or
- * the signed-in user's WikiTree ancestors plus a linked partner's. The user's own
+ * the user's own tree (WikiTree ancestors, or an imported GEDCOM file) plus a linked partner's. The user's own
  * names are saved and refetched now and then. Sends the error response and returns
  * null when the names can't be had.
  */
@@ -147,9 +148,16 @@ async function nameCandidates(req: Request, res: Response): Promise<NameCandidat
   }
   const userId = req.user!.id;
   const session = await getWikiTreeSession(userId);
-  // 403 rather than 401: a 401 would sign the user out of our app.
   if (!session) {
-    res.status(403).json({ message: 'Sign in to WikiTree to see names from your family tree.' });
+    // An imported GEDCOM file never changes, so its saved names are all there is.
+    if (await getGedcomImport(userId)) {
+      const [saved, partner] = await Promise.all([getWikiTreeNames(userId), getPartnerWikiTreeNames(userId)]);
+      return [...(saved ?? []), ...partner];
+    }
+    // 403 rather than 401: a 401 would sign the user out of our app.
+    res.status(403).json({
+      message: 'Sign in to WikiTree or import a GEDCOM file to see names from your family tree.',
+    });
     return null;
   }
   const [saved, partner] = await Promise.all([getWikiTreeNames(userId), getPartnerWikiTreeNames(userId)]);

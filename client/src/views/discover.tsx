@@ -3,7 +3,7 @@ import { useState } from "react";
 import "./discover.css";
 import NameSwiper from "@/components/swipe/NameSwiper";
 import WikiTreeLoginPrompt from "@/components/wikitree/WikiTreeLoginPrompt";
-import { useWikiTreeLogin } from "@/auth/useWikiTreeLogin";
+import { useFamilyTree } from "@/auth/useFamilyTree";
 import { useDemoMode } from "@/auth/useDemoMode";
 import DemoModeToggle from "@/components/common/DemoModeToggle";
 import { Link } from "react-router";
@@ -38,7 +38,8 @@ const genderOptions: {
 
 export default function Discover() {
   // Keeps running in demo mode too, so a WikiTree sign-in redirect still completes.
-  const wikiTree = useWikiTreeLogin();
+  const tree = useFamilyTree();
+  const { wikiTree } = tree;
 
   const [demoMode, setDemoMode] = useDemoMode();
 
@@ -77,22 +78,23 @@ export default function Discover() {
           <DemoModeToggle
             on={demoMode}
             onChange={changeDemoMode}
-            hint="Sample names, no WikiTree sign-in"
+            hint="Sample names, no family tree needed"
           />
         </div>
 
-        {!demoMode && wikiTree.status === "checking" ? (
+        {!demoMode && tree.status === "checking" ? (
           <p className="wikitree-status" role="status">
-            Checking your WikiTree sign-in…
+            Checking your family tree…
           </p>
-        ) : !demoMode && wikiTree.status === "signedOut" ? (
+        ) : !demoMode && tree.status === "none" ? (
           <WikiTreeLoginPrompt
-            error={wikiTree.error}
+            error={wikiTree.error ?? tree.gedcomError}
             onLogin={wikiTree.login}
+            onImportGedcom={tree.importGedcom}
           />
         ) : (
         <>
-        {!demoMode && (
+        {!demoMode && tree.status === "wikitree" && (
           <p className="wikitree-status">
             Signed in to WikiTree as{" "}
             <strong>{wikiTree.user?.userName}</strong>
@@ -103,6 +105,19 @@ export default function Discover() {
               onClick={wikiTree.logout}
             >
               Sign out
+            </button>
+          </p>
+        )}
+        {!demoMode && tree.status === "gedcom" && (
+          <p className="wikitree-status">
+            Using names from <strong>{tree.gedcom?.fileName}</strong>
+            <span aria-hidden="true"> · </span>
+            <button
+              type="button"
+              className="wikitree-signout"
+              onClick={tree.removeGedcom}
+            >
+              Remove
             </button>
           </p>
         )}

@@ -5,6 +5,7 @@ import type {
   ContactMessageInput,
   FavoriteName,
   FavoritesVisibility,
+  GedcomImport,
   NameGender,
   NameInfo,
   Partner,
@@ -648,6 +649,8 @@ export async function setWikiTreeSession(userId: string, session: WikiTreeSessio
   );
   // The sign-in may be a different WikiTree member, so don't trust the saved names as fresh.
   await db.execute('UPDATE wikitree_names SET fetched_at = 0 WHERE user_id = ?', [userId]);
+  // WikiTree takes over from an imported GEDCOM file; its names are replaced on the next fetch.
+  await db.execute('DELETE FROM gedcom_imports WHERE user_id = ?', [userId]);
 }
 
 export async function getWikiTreeSession(userId: string): Promise<WikiTreeSession | null> {
@@ -706,6 +709,51 @@ export async function getPartnerWikiTreeNames(userId: string): Promise<NameCandi
     [userId],
   );
   return rows[0] ? parseNames(rows[0].names).map((c) => ({ ...c, fromPartner: true })) : [];
+}
+
+// ---- GEDCOM imports ----
+
+interface GedcomImportRow extends RowDataPacket {
+  file_name: string;
+  name_count: number;
+  imported_at: number;
+}
+
+/**
+ * Saves the names from an imported GEDCOM file as the user's tree, replacing a
+ * WikiTree sign-in or an earlier import. The names stay until the user removes them.
+ */
+export async function setGedcomImport(userId: string, fileName: string, candidates: NameCandidate[]): Promise<GedcomImport> {
+  const info: GedcomImport = {
+    fileName,
+    nameCount: new Set(candidates.map((c) => c.name)).size,
+    importedAt: Date.now(),
+  };
+  await db.execute('DELETE FROM wikitree_sessions WHERE user_id = ?', [userId]);
+  await setWikiTreeNames(userId, candidates);
+  await db.execute(
+    `INSERT INTO gedcom_imports (user_id, file_name, name_count, imported_at) VALUES (?, ?, ?, ?) AS new
+     ON DUPLICATE KEY UPDATE file_name = new.file_name, name_count = new.name_count, imported_at = new.imported_at`,
+    [userId, info.fileName, info.nameCount, info.importedAt],
+  );
+  return info;
+}
+
+export async function getGedcomImport(userId: string): Promise<GedcomImport | null> {
+  const [rows] = await db.execute<GedcomImportRow[]>(
+    'SELECT file_name, name_count, imported_at FROM gedcom_imports WHERE user_id = ?',
+    [userId],
+  );
+  const row = rows[0];
+  return row ? { fileName: row.file_name, nameCount: row.name_count, importedAt: Number(row.imported_at) } : null;
+}
+
+/** Removes the imported tree and its names. Does nothing to a WikiTree sign-in. */
+export async function deleteGedcomImport(userId: string): Promise<void> {
+  const [result] = await db.execute<ResultSetHeader>('DELETE FROM gedcom_imports WHERE user_id = ?', [userId]);
+  if (result.affectedRows > 0) {
+    await db.execute('DELETE FROM wikitree_names WHERE user_id = ?', [userId]);
+  }
 }
 
 // ---- Contact messages ----

@@ -1,0 +1,155 @@
+/* GEDCOM import (GedcomImport.tsx), on Discover and the Dashboard. */
+
+.gedcom-import {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 480px;
+  text-align: center;
+}
+
+.gedcom-import > [role="alert"] {
+  width: 100%;
+  text-align: left;
+}
+
+/* The real input stays reachable for the label and keyboard, just not visible. */
+.gedcom-file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.gedcom-choose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 26px;
+  border: 2px solid #829b57;
+  border-radius: 50px;
+  background: #fff;
+  color: #4f6332;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.gedcom-choose:hover {
+  background: #f1f7e6;
+}
+
+.gedcom-choose:has(+ .gedcom-file:focus-visible) {
+  outline: 3px solid #829b57;
+  outline-offset: 3px;
+}
+
+.gedcom-hint {
+  max-width: 420px;
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #888;
+}
+
+.gedcom-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.gedcom-confirm label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #444;
+}
+
+.gedcom-file-name {
+  margin: 0;
+  font-size: 13px;
+  color: #777;
+  overflow-wrap: anywhere;
+}
+
+.gedcom-search,
+.gedcom-picker {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+  background: #fff;
+  color: #333;
+}
+
+.gedcom-search:focus-visible,
+.gedcom-picker:focus-visible {
+  outline: 3px solid #829b57;
+  outline-offset: 1px;
+}
+
+.gedcom-count {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+}
+
+.gedcom-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+}
+
+.gedcom-actions .discover-start-btn {
+  min-width: 0;
+}
+
+.gedcom-cancel {
+  padding: 0;
+  border: none;
+  background: none;
+  color: #777;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.gedcom-cancel:focus-visible {
+  outline: 3px solid #829b57;
+  outline-offset: 2px;
+}
+
+.gedcom-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  margin: 28px 0 20px;
+  font-size: 13px;
+  color: #999;
+}
+
+.gedcom-divider::before,
+.gedcom-divider::after {
+  content: "";
+  flex: 1;
+  border-top: 1px solid #e2e2e2;
+}
+
+/* The Dashboard's family tree panel is left-aligned. */
+.dashboard-tree .gedcom-import {
+  align-items: flex-start;
+  text-align: left;
+}

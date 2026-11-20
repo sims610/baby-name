@@ -24,7 +24,7 @@ function Icon({ children }: { children: ReactNode }) {
 const steps = [
   {
     title: "Connect your tree",
-    description: "Sign in with WikiTree and we'll read up to ten generations of your ancestors.",
+    description: "Sign in with WikiTree or import a GEDCOM file, and we'll read up to ten generations of your ancestors.",
     icon: (
       <Icon>
         <circle cx="12" cy="5" r="2.5" />

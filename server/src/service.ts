@@ -4,6 +4,7 @@ import { authRouter, setAuthUser } from './routes/authRouter.ts';
 import { nameRouter } from './routes/nameRouter.ts';
 import { contactRouter } from './routes/contactRouter.ts';
 import { wikitreeRouter } from './routes/wikitreeRouter.ts';
+import { GEDCOM_BODY_LIMIT, gedcomRouter } from './routes/gedcomRouter.ts';
 import { partnerRouter } from './routes/partnerRouter.ts';
 import { settingsRouter } from './routes/settingsRouter.ts';
 import { pushRouter } from './routes/pushRouter.ts';
@@ -26,6 +27,8 @@ const ALLOWED_ORIGINS = new Set(
 
 const app = express();
 app.disable('x-powered-by');
+// A GEDCOM import carries a whole tree's ancestors; the parser below skips bodies already read.
+app.use('/api/gedcom', express.json({ limit: GEDCOM_BODY_LIMIT }));
 app.use(express.json({ limit: '10kb' }));
 
 app.use((req: Request, res: Response, next: NextFunction) => {
@@ -54,6 +57,7 @@ apiRouter.use('/auth', authRouter);
 apiRouter.use('/name', nameRouter);
 apiRouter.use('/contact', contactRouter);
 apiRouter.use('/wikitree', wikitreeRouter);
+apiRouter.use('/gedcom', gedcomRouter);
 apiRouter.use('/partner', partnerRouter);
 apiRouter.use('/settings', settingsRouter);
 apiRouter.use('/push', pushRouter);
@@ -68,6 +72,7 @@ apiRouter.use('/docs', (req: Request, res: Response) => {
       ...pushRouter.docs,
       ...contactRouter.docs,
       ...wikitreeRouter.docs,
+      ...gedcomRouter.docs,
     ],
   });
 });

@@ -68,6 +68,29 @@ export interface WikiTreeUser {
   userName: string;
 }
 
+/**
+ * One ancestor read from a GEDCOM file in the browser. Only these fields are sent
+ * to the server, never the file itself. `degrees` is the generation: 1 a parent,
+ * 2 a grandparent, and so on.
+ */
+export interface GedcomAncestor {
+  firstName?: string;
+  lastName?: string;
+  gender?: 'Male' | 'Female';
+  /** The birth year as text, e.g. "1902", when the file has one. */
+  birthDate?: string;
+  degrees: number;
+}
+
+/** A family tree the user imported from a GEDCOM file. */
+export interface GedcomImport {
+  fileName: string;
+  /** How many different first names the import gave. */
+  nameCount: number;
+  /** Milliseconds since the epoch. */
+  importedAt: number;
+}
+
 /** What a visitor submits through the Contact form. */
 export interface ContactMessageInput {
   name: string;

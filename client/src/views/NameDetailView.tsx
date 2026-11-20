@@ -48,7 +48,7 @@ export default function NameDetailView() {
     return () => controller.abort();
   }, [authRequest, rawName]);
 
-  // Ancestors who had this name. Quietly empty when the tree can't be read (e.g. no WikiTree sign-in).
+  // Ancestors who had this name. Quietly empty when the tree can't be read (e.g. no WikiTree sign-in or imported tree).
   useEffect(() => {
     const controller = new AbortController();
     const source = demoMode ? "demo" : "wikitree";

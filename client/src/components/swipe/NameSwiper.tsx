@@ -9,7 +9,7 @@ import "./NameSwiper.css";
 
 export type Gender = "boy" | "girl" | "surprise";
 
-/** Where names come from: sample data, or the user's WikiTree ancestors. */
+/** Where names come from: sample data, or the user's own tree (WikiTree or an imported GEDCOM file). */
 export type NameSource = "demo" | "wikitree";
 
 type NameSwiperProps = {
@@ -285,7 +285,7 @@ export default function NameSwiper({
       ) : names.length === 0 ? (
         <Notice variant="info" title="No names yet">
           {source === "wikitree"
-            ? "We couldn't find any ancestor names in your WikiTree tree yet. Add parents or grandparents on WikiTree, or try Demo mode."
+            ? "We couldn't find any ancestor names in your family tree yet. Add parents or grandparents to your tree, or try Demo mode."
             : "No names match this preference."}
         </Notice>
       ) : !isFinished ? (

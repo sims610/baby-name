@@ -12,6 +12,8 @@ export interface WikiTreeLoginState {
   error: string | null;
   login: () => void;
   logout: () => void;
+  /** Shows the visitor as signed out without asking the server (it already ended the session). */
+  markSignedOut: () => void;
 }
 
 type WikiTreeResponse = { user: WikiTreeUser | null };
@@ -87,5 +89,11 @@ export function useWikiTreeLogin(): WikiTreeLoginState {
     });
   }, [authRequest]);
 
-  return { status, user, error, login, logout };
+  const markSignedOut = useCallback(() => {
+    setUser(null);
+    setError(null);
+    setStatus("signedOut");
+  }, []);
+
+  return { status, user, error, login, logout, markSignedOut };
 }

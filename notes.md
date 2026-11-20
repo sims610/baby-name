@@ -27,6 +27,8 @@
 | Sign in to WikiTree (redirect back to Discover) | discover.tsx, useWikiTreeLogin.ts | POST /api/wikitree/login | `confirmWikiTreeLogin` → WikiTree clientLogin(authcode)<br>`setWikiTreeSession` → wikiTreeSessions.set(userId, session) |
 | Check WikiTree sign-in on Discover | discover.tsx, useWikiTreeLogin.ts | GET /api/wikitree/session | `getWikiTreeSession` → wikiTreeSessions.get(userId)<br>`checkWikiTreeLogin` → WikiTree clientLogin(checkLogin) |
 | Sign out of WikiTree | discover.tsx, useWikiTreeLogin.ts | DELETE /api/wikitree/session | `deleteWikiTreeSession` → wikiTreeSessions.delete(userId)<br>`logoutWikiTree` → WikiTree clientLogin(doLogout) |
+| Import a GEDCOM file instead of WikiTree (parsed in the browser by `parseGedcom.ts`) | discover.tsx, DashboardView.tsx, GedcomImport.tsx, useFamilyTree.ts | POST /api/gedcom | `toNameCandidates` on the uploaded ancestors<br>`setGedcomImport` → drops wikitree_sessions row, saves wikitree_names, upserts gedcom_imports |
+| Check / remove the imported tree | useFamilyTree.ts | GET /api/gedcom, DELETE /api/gedcom | `getGedcomImport` / `deleteGedcomImport` → gedcom_imports (+ wikitree_names on delete) |
 
 **Database collections** (key-value, in memory in `server/src/database/database.ts`):
 

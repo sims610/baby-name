@@ -119,6 +119,17 @@ const SCHEMA = [
     CONSTRAINT wikitree_names_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 
+  // A family tree the user imported from a GEDCOM file instead of signing in to
+  // WikiTree. Its names live in wikitree_names like WikiTree's; this row says
+  // where they came from (and that there's nothing to refetch).
+  `CREATE TABLE IF NOT EXISTS gedcom_imports (
+    user_id     CHAR(36)     NOT NULL PRIMARY KEY,
+    file_name   VARCHAR(255) NOT NULL,
+    name_count  INT          NOT NULL,
+    imported_at BIGINT       NOT NULL,
+    CONSTRAINT gedcom_imports_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
   // Browsers that asked for push notifications (Web Push). One row per browser: the
   // endpoint is unique, so signing in as someone else on that browser moves it to them.
   `CREATE TABLE IF NOT EXISTS push_subscriptions (

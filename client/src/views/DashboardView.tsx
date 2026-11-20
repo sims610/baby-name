@@ -1,10 +1,11 @@
 import { Link } from "react-router";
 import { useAuth } from "@/auth/useAuth";
 import { useDemoMode } from "@/auth/useDemoMode";
-import { useWikiTreeLogin } from "@/auth/useWikiTreeLogin";
-import type { WikiTreeLoginState } from "@/auth/useWikiTreeLogin";
+import { useFamilyTree } from "@/auth/useFamilyTree";
+import type { FamilyTreeState } from "@/auth/useFamilyTree";
 import DemoModeToggle from "@/components/common/DemoModeToggle";
 import Notice from "@/components/common/Notice";
+import GedcomImport from "@/components/wikitree/GedcomImport";
 import PageTopbar from "@/components/common/PageTopbar";
 import NotificationSettings from "@/components/dashboard/NotificationSettings";
 import PrivacySettings from "@/components/dashboard/PrivacySettings";
@@ -44,7 +45,7 @@ export default function DashboardView() {
   const lists = useNameLists(demoMode);
   const { favorites, loading, error } = lists;
   // Also completes a WikiTree sign-in started from this page.
-  const wikiTree = useWikiTreeLogin();
+  const tree = useFamilyTree();
 
   const firstName = user?.name.trim().split(/\s+/)[0] ?? "there";
   const boys = favorites.filter((f) => f.gender === "boy").length;
@@ -94,7 +95,7 @@ export default function DashboardView() {
 
         <div className="dashboard-panels">
           <RecentFavorites lists={lists} boys={boys} girls={girls} />
-          <FamilyTreePanel demoMode={demoMode} wikiTree={wikiTree} />
+          <FamilyTreePanel demoMode={demoMode} tree={tree} />
         </div>
 
         <PrivacySettings />
@@ -203,11 +204,12 @@ function RecentFavorites({ lists, boys, girls }: RecentFavoritesProps) {
 
 interface FamilyTreePanelProps {
   demoMode: boolean;
-  wikiTree: WikiTreeLoginState;
+  tree: FamilyTreeState;
 }
 
-/** Where names come from: the WikiTree connection, or the sample tree in demo mode. */
-function FamilyTreePanel({ demoMode, wikiTree }: FamilyTreePanelProps) {
+/** Where names come from: WikiTree, an imported GEDCOM file, or the sample tree in demo mode. */
+function FamilyTreePanel({ demoMode, tree }: FamilyTreePanelProps) {
+  const { wikiTree } = tree;
   return (
     <section className="dashboard-panel dashboard-tree" aria-labelledby="dashboard-tree-title">
       <div className="dashboard-panel-header">
@@ -226,13 +228,13 @@ function FamilyTreePanel({ demoMode, wikiTree }: FamilyTreePanelProps) {
       {demoMode ? (
         <>
           <p className="dashboard-tree-status">Using the sample family tree</p>
-          <p className="dashboard-muted">Turn off Demo mode to see names from your own WikiTree ancestors.</p>
+          <p className="dashboard-muted">Turn off Demo mode to see names from your own ancestors.</p>
         </>
-      ) : wikiTree.status === "checking" ? (
+      ) : tree.status === "checking" ? (
         <p className="dashboard-muted" role="status">
-          Checking your WikiTree sign-in…
+          Checking your family tree…
         </p>
-      ) : wikiTree.status === "signedIn" ? (
+      ) : tree.status === "wikitree" ? (
         <>
           <p className="dashboard-tree-status">
             Connected as <strong>{wikiTree.user?.userName}</strong>
@@ -242,14 +244,30 @@ function FamilyTreePanel({ demoMode, wikiTree }: FamilyTreePanelProps) {
             Sign out of WikiTree
           </button>
         </>
+      ) : tree.status === "gedcom" && tree.gedcom ? (
+        <>
+          <p className="dashboard-tree-status">
+            Imported <strong>{tree.gedcom.fileName}</strong>
+          </p>
+          <p className="dashboard-muted">
+            {tree.gedcom.nameCount} {tree.gedcom.nameCount === 1 ? "name" : "names"} from your ancestors, imported{" "}
+            {new Date(tree.gedcom.importedAt).toLocaleDateString()}.
+          </p>
+          {tree.gedcomError && <Notice variant="error">{tree.gedcomError}</Notice>}
+          <GedcomImport onImport={tree.importGedcom} chooseLabel="Import a newer file" />
+          <button type="button" className="dashboard-link-btn" onClick={tree.removeGedcom}>
+            Remove imported tree
+          </button>
+        </>
       ) : (
         <>
           <p className="dashboard-tree-status">Not connected</p>
-          <p className="dashboard-muted">Sign in with WikiTree to discover names from your ancestors.</p>
+          <p className="dashboard-muted">Sign in with WikiTree or import a GEDCOM file to discover names from your ancestors.</p>
           {wikiTree.error && <Notice variant="error">{wikiTree.error}</Notice>}
           <button type="button" className="dashboard-btn theme-default" onClick={wikiTree.login}>
             Sign in with WikiTree <span aria-hidden="true">→</span>
           </button>
+          <GedcomImport onImport={tree.importGedcom} />
         </>
       )}
     </section>

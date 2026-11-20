@@ -63,4 +63,4 @@ This starts the API server on http://localhost:3000 and the client together. Onc
 
 To try the app without registering, log in with the demo account **test@gmail.com** / **test1234**. It comes with saved favorites, a top 3, and a linked partner, **test2@gmail.com** (same password), so Matches has names to compare.
 
-> **Note:** Everything the app saves (accounts, favorites, partner links, settings, WikiTree sign-ins and contact messages) is stored in MySQL, so it survives restarts. Names currently come from sample family tree data rather than FamilySearch.
+> **Note:** Everything the app saves (accounts, favorites, partner links, settings, WikiTree sign-ins, imported GEDCOM trees and contact messages) is stored in MySQL, so it survives restarts. Names currently come from sample family tree data rather than FamilySearch.

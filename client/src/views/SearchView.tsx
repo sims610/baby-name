@@ -75,7 +75,7 @@ export default function SearchView() {
         </header>
 
         {!query ? (
-          <p className="search-status">Search the sample names and the names from your WikiTree tree.</p>
+          <p className="search-status">Search the sample names and the names from your family tree.</p>
         ) : loading ? (
           <p className="search-status" role="status">
             Searching…
