@@ -101,7 +101,8 @@ wikitreeRouter.get('/session', authenticateToken, async (req: Request, res: Resp
 // sign out of WikiTree
 wikitreeRouter.delete('/session', authenticateToken, async (req: Request, res: Response) => {
   const session = await getWikiTreeSession(req.user!.id);
-  await deleteWikiTreeSession(req.user!.id);
+  // Signing out on purpose also takes the tree's names away from a linked partner.
+  await deleteWikiTreeSession(req.user!.id, { forgetNames: true });
   if (session?.cookies) {
     // Best effort: our copy of the session is already gone either way.
     await logoutWikiTree(session).catch(() => undefined);

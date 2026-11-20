@@ -226,9 +226,25 @@ export async function consumePasswordResetToken(token: string): Promise<string |
   return row.user_id;
 }
 
-function toBabyName({ name, gender }: NameCandidate): BabyName {
+type NameTree = NonNullable<BabyName['tree']>;
+
+/**
+ * For each first name that appears in the partner's tree: 'partner' if only there,
+ * 'both' if it's in the user's tree too. Names only in the user's tree aren't listed.
+ */
+function partnerTrees(candidates: NameCandidate[]): Map<string, NameTree> {
+  const yours = new Set<string>();
+  const theirs = new Set<string>();
+  for (const c of candidates) {
+    (c.fromPartner ? theirs : yours).add(c.name);
+  }
+  return new Map([...theirs].map((name) => [name, yours.has(name) ? 'both' : 'partner']));
+}
+
+function toBabyName({ name, gender }: NameCandidate, trees?: Map<string, NameTree>): BabyName {
   const info = nameInfo[name] ?? { origin: 'Unknown', meaning: 'Unknown' };
-  return { name, gender, ...info };
+  const tree = trees?.get(name);
+  return { name, gender, ...info, ...(tree ? { tree } : {}) };
 }
 
 function candidatesMatching(candidates: NameCandidate[], gender?: NameGender): NameCandidate[] {
@@ -246,8 +262,10 @@ export function getRandomName(candidates: NameCandidate[], gender?: NameGender):
 /** Every matching name once, in random order, with duplicate first names removed. */
 export function listNames(candidates: NameCandidate[], gender?: NameGender): BabyName[] {
   const seen = new Set<string>();
-  const names = candidatesMatching(candidates, gender)
-    .map(toBabyName)
+  const matches = candidatesMatching(candidates, gender);
+  const trees = partnerTrees(matches);
+  const names = matches
+    .map((c) => toBabyName(c, trees))
     .filter((n) => !seen.has(n.name) && seen.add(n.name));
   // Fisher-Yates shuffle so each visit to Discover starts somewhere different.
   for (let i = names.length - 1; i > 0; i--) {
@@ -525,9 +543,18 @@ export function getNameInfo(name: string): NameInfo | null {
 
 const SEARCH_LIMIT = 30;
 
-/** Names containing `query`, those starting with it first, then alphabetical. */
-export function searchNames(candidates: NameCandidate[], query: string): BabyName[] {
+/**
+ * Names containing `query`, those starting with it first, then alphabetical.
+ * `treeCandidates` (the real family trees, without sample names) decides which
+ * results are marked as coming from the partner's tree.
+ */
+export function searchNames(
+  candidates: NameCandidate[],
+  query: string,
+  treeCandidates: NameCandidate[] = candidates,
+): BabyName[] {
   const q = query.trim().toLowerCase();
+  const trees = partnerTrees(treeCandidates);
   const seen = new Set<string>();
   return candidates
     .filter((c) => c.name.toLowerCase().includes(q) && !seen.has(c.name) && seen.add(c.name))
@@ -537,7 +564,7 @@ export function searchNames(candidates: NameCandidate[], query: string): BabyNam
       return aStarts === bStarts ? a.name.localeCompare(b.name) : aStarts ? -1 : 1;
     })
     .slice(0, SEARCH_LIMIT)
-    .map(toBabyName);
+    .map((c) => toBabyName(c, trees));
 }
 
 // ---- WikiTree ----
@@ -546,25 +573,30 @@ interface WikiTreeRow extends RowDataPacket {
   wikitree_user_id: number;
   wikitree_username: string;
   cookies: string;
-  names: NameCandidate[] | string | null;
-  names_fetched_at: number | null;
 }
 
-// Names pulled from each user's WikiTree tree, so Discover doesn't refetch the batch every visit.
-const WIKITREE_NAMES_TTL_MS = 60 * 60 * 1000;
+interface WikiTreeNamesRow extends RowDataPacket {
+  names: NameCandidate[] | string;
+  fetched_at: number;
+}
 
-/** Saves the user's WikiTree sign-in, replacing any earlier one and its cached names. */
+// Names pulled from a user's tree are kept for good (WikiTree sign-ins expire, but a
+// partner still needs the names to match on). After this long, Discover refetches
+// them the next time the user is signed in to WikiTree.
+const WIKITREE_NAMES_REFRESH_MS = 60 * 60 * 1000;
+
+/** Saves the user's WikiTree sign-in, replacing any earlier one. Their saved names are refetched on next use. */
 export async function setWikiTreeSession(userId: string, session: WikiTreeSession): Promise<void> {
   await db.execute(
     `INSERT INTO wikitree_sessions (user_id, wikitree_user_id, wikitree_username, cookies) VALUES (?, ?, ?, ?) AS new
      ON DUPLICATE KEY UPDATE
        wikitree_user_id = new.wikitree_user_id,
        wikitree_username = new.wikitree_username,
-       cookies = new.cookies,
-       names = NULL,
-       names_fetched_at = NULL`,
+       cookies = new.cookies`,
     [userId, session.userId, session.userName, session.cookies],
   );
+  // The sign-in may be a different WikiTree member, so don't trust the saved names as fresh.
+  await db.execute('UPDATE wikitree_names SET fetched_at = 0 WHERE user_id = ?', [userId]);
 }
 
 export async function getWikiTreeSession(userId: string): Promise<WikiTreeSession | null> {
@@ -576,31 +608,53 @@ export async function getWikiTreeSession(userId: string): Promise<WikiTreeSessio
   return row ? { userId: row.wikitree_user_id, userName: row.wikitree_username, cookies: row.cookies } : null;
 }
 
-/** Forgets the user's WikiTree sign-in and its cached names. */
-export async function deleteWikiTreeSession(userId: string): Promise<void> {
+/**
+ * Forgets the user's WikiTree sign-in. The names from their tree stay, so a partner
+ * can keep matching on them, unless `forgetNames` is set (the user chose to sign out).
+ */
+export async function deleteWikiTreeSession(userId: string, { forgetNames = false } = {}): Promise<void> {
   await db.execute('DELETE FROM wikitree_sessions WHERE user_id = ?', [userId]);
-}
-
-/** The user's cached WikiTree names, or null if none were fetched in the last hour. */
-export async function getWikiTreeNames(userId: string): Promise<NameCandidate[] | null> {
-  const [rows] = await db.execute<WikiTreeRow[]>(
-    'SELECT names, names_fetched_at FROM wikitree_sessions WHERE user_id = ?',
-    [userId],
-  );
-  const row = rows[0];
-  if (!row?.names || row.names_fetched_at === null || Date.now() - Number(row.names_fetched_at) > WIKITREE_NAMES_TTL_MS) {
-    return null;
+  if (forgetNames) {
+    await db.execute('DELETE FROM wikitree_names WHERE user_id = ?', [userId]);
   }
-  return typeof row.names === 'string' ? (JSON.parse(row.names) as NameCandidate[]) : row.names;
 }
 
-/** Caches the names pulled from the user's tree. Needs a saved WikiTree sign-in. */
-export async function setWikiTreeNames(userId: string, candidates: NameCandidate[]): Promise<void> {
-  await db.execute('UPDATE wikitree_sessions SET names = ?, names_fetched_at = ? WHERE user_id = ?', [
-    JSON.stringify(candidates),
-    Date.now(),
+function parseNames(names: NameCandidate[] | string): NameCandidate[] {
+  return typeof names === 'string' ? (JSON.parse(names) as NameCandidate[]) : names;
+}
+
+/** The names saved from the user's tree (however old), or null if none were ever fetched. */
+export async function getWikiTreeNames(userId: string): Promise<NameCandidate[] | null> {
+  const [rows] = await db.execute<WikiTreeNamesRow[]>('SELECT names FROM wikitree_names WHERE user_id = ?', [userId]);
+  return rows[0] ? parseNames(rows[0].names) : null;
+}
+
+/** True when the user's saved names are missing or old enough to fetch again. */
+export async function wikiTreeNamesNeedRefresh(userId: string): Promise<boolean> {
+  const [rows] = await db.execute<WikiTreeNamesRow[]>('SELECT fetched_at FROM wikitree_names WHERE user_id = ?', [
     userId,
   ]);
+  return !rows[0] || Date.now() - Number(rows[0].fetched_at) > WIKITREE_NAMES_REFRESH_MS;
+}
+
+/** Saves the names pulled from the user's tree, replacing any earlier ones. */
+export async function setWikiTreeNames(userId: string, candidates: NameCandidate[]): Promise<void> {
+  await db.execute(
+    `INSERT INTO wikitree_names (user_id, names, fetched_at) VALUES (?, ?, ?) AS new
+     ON DUPLICATE KEY UPDATE names = new.names, fetched_at = new.fetched_at`,
+    [userId, JSON.stringify(candidates), Date.now()],
+  );
+}
+
+/** The names saved from the linked partner's tree, marked as theirs. Empty without a partner. */
+export async function getPartnerWikiTreeNames(userId: string): Promise<NameCandidate[]> {
+  const [rows] = await db.execute<WikiTreeNamesRow[]>(
+    `SELECT wikitree_names.names
+     FROM partners JOIN wikitree_names ON wikitree_names.user_id = partners.partner_id
+     WHERE partners.user_id = ?`,
+    [userId],
+  );
+  return rows[0] ? parseNames(rows[0].names).map((c) => ({ ...c, fromPartner: true })) : [];
 }
 
 // ---- Contact messages ----

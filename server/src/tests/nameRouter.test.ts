@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, jest, test } from '@jest/globals';
 import request from 'supertest';
 import app from '../service.ts';
-import { fakeAncestry } from '../database/fakeData.ts';
+import { fakeAncestry, fakePartnerAncestry } from '../database/fakeData.ts';
 import { nameInfo } from '../database/nameInfo.ts';
 
 // Names the endpoint can return: first names of the ancestors, skipping the user themself (ascendancy number 1).
@@ -157,6 +157,44 @@ describe('GET /api/name/favorites (list favorites)', () => {
   });
 });
 
+describe('demo mode with a linked partner', () => {
+  const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+  async function linkedUser(): Promise<string> {
+    const you = await registerUser();
+    const partner = await registerUser();
+    const invite = await request(app).get('/api/partner').set(auth(partner)).expect(200);
+    await request(app).post('/api/partner').set(auth(you)).send({ code: invite.body.inviteCode }).expect(200);
+    return you;
+  }
+
+  test('mixes in the sample partner tree, marking which tree each name came from', async () => {
+    const you = await linkedUser();
+
+    const res = await request(app).get('/api/name/list?source=demo').set(auth(you)).expect(200);
+
+    const trees = Object.fromEntries(res.body.names.map((n: { name: string; tree?: string }) => [n.name, n.tree]));
+    expect(trees.Maeve).toBe('partner');
+    expect(trees.Henry).toBe('both');
+    expect(trees.Hazel).toBeUndefined();
+    // Every name in either sample tree has a meaning, so no card says "Unknown".
+    const partnerNames = fakePartnerAncestry.persons.filter((p) => p.display.ascendancyNumber !== '1');
+    expect(res.body.names).toHaveLength(new Set([...ancestors, ...partnerNames].map((p) => firstName(p.display.name))).size);
+    expect(res.body.names.every((n: { origin: string }) => n.origin !== 'Unknown')).toBe(true);
+  });
+
+  test("lists the partner's sample ancestors as roots", async () => {
+    const you = await linkedUser();
+
+    const res = await request(app).get('/api/name/roots/Henry?source=demo').set(auth(you)).expect(200);
+
+    expect(res.body.roots).toEqual([
+      { fullName: 'Henry Smith', relation: 'grandfather', birthYear: 1931 },
+      { fullName: 'Henry Doyle', relation: 'great-grandfather', birthYear: 1905, fromPartner: true },
+    ]);
+  });
+});
+
 describe('GET /api/name/list?source=wikitree (names from the WikiTree tree)', () => {
   // Stands in for api.wikitree.com: each call returns the next queued response.
   function mockWikiTree(...bodies: unknown[]) {
@@ -275,6 +313,79 @@ describe('GET /api/name/list?source=wikitree (names from the WikiTree tree)', ()
 
     expect(res.status).toBe(503);
     expect(res.body.message).toMatch(/still setting up your family tree/);
+  });
+
+  describe("a linked partner's tree", () => {
+    const auth = (token: string) => ({ Authorization: `Bearer ${token}` });
+
+    async function linkPartners(you: string, partner: string) {
+      const invite = await request(app).get('/api/partner').set(auth(partner)).expect(200);
+      await request(app).post('/api/partner').set(auth(you)).send({ code: invite.body.inviteCode }).expect(200);
+    }
+
+    // Two linked users, each signed in to WikiTree with their tree's names already saved.
+    async function linkedPairWithTrees() {
+      const you = await registerUser();
+      const partner = await registerUser();
+      await linkPartners(you, partner);
+      await connectWikiTree(partner);
+      mockWikiTree(people({ FirstName: 'Hazel', Gender: 'Female', Degrees: 2 }, { FirstName: 'Otto', Gender: 'Male' }));
+      await listWikiTree(partner).expect(200);
+      await connectWikiTree(you);
+      mockWikiTree(people({ FirstName: 'Hazel', Gender: 'Female' }, { FirstName: 'William', Gender: 'Male' }));
+      // Fetch now, so no queued WikiTree response is left for a later call to pick up by mistake.
+      await listWikiTree(you).expect(200);
+      return { you, partner };
+    }
+
+    test('mixes in their names, marking which tree each came from', async () => {
+      const { you } = await linkedPairWithTrees();
+
+      const res = await listWikiTree(you).expect(200);
+
+      const trees = Object.fromEntries(res.body.names.map((n: { name: string; tree?: string }) => [n.name, n.tree]));
+      expect(trees).toEqual({ Hazel: 'both', Otto: 'partner', William: undefined });
+    });
+
+    test("keeps their names after their WikiTree sign-in expires", async () => {
+      const { you, partner } = await linkedPairWithTrees();
+      // WikiTree says the partner's cookies are no longer signed in.
+      mockWikiTree({ clientLogin: { result: 'error' } });
+      await request(app).get('/api/wikitree/session').set(auth(partner)).expect(200, { user: null });
+
+      const res = await listWikiTree(you).expect(200);
+
+      expect(res.body.names.map((n: { name: string }) => n.name)).toContain('Otto');
+    });
+
+    test('drops their names when they sign out of WikiTree', async () => {
+      const { you, partner } = await linkedPairWithTrees();
+      mockWikiTree({ clientLogin: { result: 'Success' } });
+      await request(app).delete('/api/wikitree/session').set(auth(partner)).expect(200);
+
+      const res = await listWikiTree(you).expect(200);
+
+      expect(res.body.names.map((n: { name: string }) => n.name).sort()).toEqual(['Hazel', 'William']);
+    });
+
+    test('lists their ancestors as roots, marked fromPartner', async () => {
+      const { you } = await linkedPairWithTrees();
+
+      const res = await request(app).get('/api/name/roots/Hazel?source=wikitree').set(auth(you)).expect(200);
+
+      expect(res.body.roots).toEqual([
+        { fullName: 'Hazel', relation: 'mother' },
+        { fullName: 'Hazel', relation: 'grandmother', fromPartner: true },
+      ]);
+    });
+
+    test('search marks names from their tree', async () => {
+      const { you } = await linkedPairWithTrees();
+
+      const res = await request(app).get('/api/name/search?q=otto').set(auth(you)).expect(200);
+
+      expect(res.body.names).toEqual([expect.objectContaining({ name: 'Otto', tree: 'partner' })]);
+    });
   });
 
   test('rejects an unknown source', async () => {

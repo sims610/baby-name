@@ -13,9 +13,12 @@ import {
   getWikiTreeSession,
   getWikiTreeNames,
   setWikiTreeNames,
+  wikiTreeNamesNeedRefresh,
+  getPartnerWikiTreeNames,
+  getPartner,
 } from '../database/database.ts';
 import type { NameGender, NameRoot } from 'shared';
-import { fakeNameCandidates, relationName, toNameCandidates } from '../names.ts';
+import { fakeNameCandidates, fakePartnerNameCandidates, relationName, toNameCandidates } from '../names.ts';
 import type { NameCandidate } from '../names.ts';
 import { fetchWikiTreeAncestors, WikiTreeTreeNotReadyError } from '../wikitree.ts';
 import { authenticateToken } from './authRouter.ts';
@@ -36,7 +39,7 @@ const nameRouter = Object.assign(express.Router(), {
       path: '/api/name?gender=boy|girl&source=demo|wikitree',
       requiresAuth: true,
       description:
-        'Generate a random name. Omit gender for either. source=wikitree uses your WikiTree ancestors (sign in first); demo (the default) uses sample data.',
+        'Generate a random name. Omit gender for either. source=wikitree uses your WikiTree ancestors plus those of your linked partner (sign in first); demo (the default) uses sample data, plus a sample partner tree once you link a partner.',
       example: `curl 'localhost:3000/api/name?gender=girl&source=wikitree' -H 'Authorization: Bearer abc123'`,
       response: { name: 'Hazel', gender: 'girl', origin: 'English', meaning: 'Hazel tree' },
     },
@@ -45,9 +48,9 @@ const nameRouter = Object.assign(express.Router(), {
       path: '/api/name/list?gender=boy|girl&source=demo|wikitree',
       requiresAuth: true,
       description:
-        'List every name once, in random order. Omit gender for both. source=wikitree uses your WikiTree ancestors (sign in first); demo (the default) uses sample data.',
+        'List every name once, in random order. Omit gender for both. source=wikitree uses your WikiTree ancestors plus those of your linked partner (sign in first); demo (the default) uses sample data, plus a sample partner tree once you link a partner.',
       example: `curl 'localhost:3000/api/name/list?gender=girl&source=wikitree' -H 'Authorization: Bearer abc123'`,
-      response: { names: [{ name: 'Hazel', gender: 'girl', origin: 'English', meaning: 'Hazel tree' }] },
+      response: { names: [{ name: 'Hazel', gender: 'girl', origin: 'English', meaning: 'Hazel tree', tree: 'partner' }] },
     },
     {
       method: 'POST',
@@ -101,7 +104,7 @@ const nameRouter = Object.assign(express.Router(), {
       method: 'GET',
       path: '/api/name/roots/:name?source=demo|wikitree',
       requiresAuth: true,
-      description: 'The ancestors in your tree who had this first name, closest first',
+      description: "The ancestors in your tree (and your linked partner's, with fromPartner: true) who had this first name, closest first",
       example: `curl 'localhost:3000/api/name/roots/Hazel?source=demo' -H 'Authorization: Bearer abc123'`,
       response: { roots: [{ fullName: 'Hazel Morgan', relation: 'great-grandmother', birthYear: 1903 }] },
     },
@@ -109,7 +112,7 @@ const nameRouter = Object.assign(express.Router(), {
       method: 'GET',
       path: '/api/name/search?q=',
       requiresAuth: true,
-      description: 'Search the sample names and your WikiTree names (once loaded) by part of a name',
+      description: "Search the sample names and the saved WikiTree names from your tree and your partner's by part of a name",
       example: `curl 'localhost:3000/api/name/search?q=ha' -H 'Authorization: Bearer abc123'`,
       response: { names: [{ name: 'Hazel', gender: 'girl', origin: 'English', meaning: 'Hazel tree' }] },
     },
@@ -124,14 +127,18 @@ function isNameGender(value: unknown): value is NameGender {
 }
 
 /**
- * The names to pick from, per `?source=`: sample data for `demo` (the default), or
- * the signed-in user's WikiTree ancestors, fetched once and cached. Sends the error
- * response and returns null when the names can't be had.
+ * The names to pick from, per `?source=`: sample data for `demo` (the default, plus a
+ * sample partner tree when the user has a partner), or
+ * the signed-in user's WikiTree ancestors plus a linked partner's. The user's own
+ * names are saved and refetched now and then. Sends the error response and returns
+ * null when the names can't be had.
  */
 async function nameCandidates(req: Request, res: Response): Promise<NameCandidate[] | null> {
   const { source = 'demo' } = req.query;
   if (source === 'demo') {
-    return fakeNameCandidates();
+    // With a linked partner, the sample partner tree is mixed in, like a real one would be.
+    const partner = await getPartner(req.user!.id);
+    return partner ? [...fakeNameCandidates(), ...fakePartnerNameCandidates()] : fakeNameCandidates();
   }
   if (source !== 'wikitree') {
     res.status(400).json({ message: 'source must be "demo" or "wikitree"' });
@@ -144,15 +151,20 @@ async function nameCandidates(req: Request, res: Response): Promise<NameCandidat
     res.status(403).json({ message: 'Sign in to WikiTree to see names from your family tree.' });
     return null;
   }
-  const cached = await getWikiTreeNames(userId);
-  if (cached) {
-    return cached;
+  const [saved, partner] = await Promise.all([getWikiTreeNames(userId), getPartnerWikiTreeNames(userId)]);
+  if (saved && !(await wikiTreeNamesNeedRefresh(userId))) {
+    return [...saved, ...partner];
   }
   try {
     const candidates = toNameCandidates(await fetchWikiTreeAncestors(session));
     await setWikiTreeNames(userId, candidates);
-    return candidates;
+    return [...candidates, ...partner];
   } catch (err) {
+    // Older names beat an error page.
+    if (saved) {
+      console.error('WikiTree refresh failed, using saved names:', err);
+      return [...saved, ...partner];
+    }
     if (err instanceof WikiTreeTreeNotReadyError) {
       res.status(503).json({
         message:
@@ -282,6 +294,7 @@ nameRouter.get('/roots/:name', authenticateToken, async (req: Request, res: Resp
       fullName: c.fullName ?? c.name,
       relation: relationName(c.generation!, c.gender),
       ...(c.birthYear ? { birthYear: c.birthYear } : {}),
+      ...(c.fromPartner ? { fromPartner: true } : {}),
     }));
   res.json({ roots });
 });
@@ -293,9 +306,11 @@ nameRouter.get('/search', authenticateToken, async (req: Request, res: Response)
     res.status(400).json({ message: 'q is required' });
     return;
   }
-  // Sample names plus the user's WikiTree names, if Discover already loaded them.
-  const candidates = [...fakeNameCandidates(), ...((await getWikiTreeNames(req.user!.id)) ?? [])];
-  res.json({ names: searchNames(candidates, q) });
+  // Sample names plus the saved WikiTree names from the user's tree and their partner's.
+  const userId = req.user!.id;
+  const [yours, partner] = await Promise.all([getWikiTreeNames(userId), getPartnerWikiTreeNames(userId)]);
+  const trees = [...(yours ?? []), ...partner];
+  res.json({ names: searchNames([...fakeNameCandidates(), ...trees], q, trees) });
 });
 
 export { nameRouter };

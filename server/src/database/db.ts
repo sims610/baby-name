@@ -100,16 +100,23 @@ const SCHEMA = [
     CONSTRAINT user_settings_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 
-  // The user's WikiTree sign-in (the cookies are a credential: server-side only)
-  // and the names last pulled from their tree, cached for an hour.
+  // The user's WikiTree sign-in (the cookies are a credential: server-side only).
+  // names/names_fetched_at are no longer used (see wikitree_names); older databases may still have them.
   `CREATE TABLE IF NOT EXISTS wikitree_sessions (
     user_id           CHAR(36)     NOT NULL PRIMARY KEY,
     wikitree_user_id  INT          NOT NULL,
     wikitree_username VARCHAR(255) NOT NULL,
     cookies           TEXT         NOT NULL,
-    names             JSON         NULL,
-    names_fetched_at  BIGINT       NULL,
     CONSTRAINT wikitree_sessions_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
+  // The names last pulled from each user's tree. Kept after the WikiTree sign-in
+  // expires, so a linked partner can still match on them; fetched_at says when to refresh.
+  `CREATE TABLE IF NOT EXISTS wikitree_names (
+    user_id    CHAR(36) NOT NULL PRIMARY KEY,
+    names      JSON     NOT NULL,
+    fetched_at BIGINT   NOT NULL,
+    CONSTRAINT wikitree_names_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 
   // Messages from the Contact form. Kept if the sender's account is deleted.

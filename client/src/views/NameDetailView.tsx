@@ -113,13 +113,19 @@ export default function NameDetailView() {
 
             {roots.length > 0 && (
               <div className="name-detail-roots">
-                <span className="name-detail-roots-label">From your family tree</span>
+                <span className="name-detail-roots-label">
+                  {roots.every((root) => root.fromPartner)
+                    ? "From your partner's family tree"
+                    : roots.some((root) => root.fromPartner)
+                      ? "From both of your family trees"
+                      : "From your family tree"}
+                </span>
                 <ul>
                   {roots.map((root) => (
-                    <li key={`${root.fullName}-${root.relation}`}>
+                    <li key={`${root.fullName}-${root.relation}-${root.fromPartner ? "partner" : "you"}`}>
                       <strong>{root.fullName}</strong>
                       <span>
-                        Your {root.relation}
+                        {root.fromPartner ? "Your partner's" : "Your"} {root.relation}
                         {root.birthYear ? ` · born ${root.birthYear}` : ""}
                       </span>
                     </li>

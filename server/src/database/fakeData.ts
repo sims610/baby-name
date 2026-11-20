@@ -63,3 +63,29 @@ export const fakeAncestry: { persons: AncestorPerson[] } = {
     person('KWCB-030', 'Sigrid Holm', 31, 1881),
   ],
 };
+
+// The demo partner's tree (Daniel, the seeded partner account). Shown in demo mode
+// when the user has a linked partner. Henry, Rose and Clara are in both trees, so
+// Discover can show names you share as well as names only your partner's family had.
+export const fakePartnerAncestry: { persons: AncestorPerson[] } = {
+  persons: [
+    person('KWPD-HZV', 'Daniel Rossi', 1, 1993),
+    // Parents
+    person('KWPD-001', 'Leo Rossi', 2, 1963),
+    person('KWPD-002', 'Nora Kelly', 3, 1966),
+    // Grandparents
+    person('KWPD-003', 'Matteo Rossi', 4, 1932),
+    person('KWPD-004', 'Lucia Bianchi', 5, 1935),
+    person('KWPD-005', 'Patrick Kelly', 6, 1930),
+    person('KWPD-006', 'Maeve Doyle', 7, 1937),
+    // Great-grandparents
+    person('KWPD-007', 'Enzo Rossi', 8, 1899),
+    person('KWPD-008', 'Rose Marino', 9, 1903),
+    person('KWPD-009', 'Felix Bianchi', 10, 1901),
+    person('KWPD-010', 'Iris Conti', 11, 1904),
+    person('KWPD-011', 'Declan Kelly', 12, 1897),
+    person('KWPD-012', 'Clara Byrne', 13, 1902),
+    person('KWPD-013', 'Henry Doyle', 14, 1905),
+    person('KWPD-014', 'Cora Walsh', 15, 1908),
+  ],
+};

@@ -19,6 +19,11 @@ export interface BabyName {
   gender: NameGender;
   origin: string;
   meaning: string;
+  /**
+   * Set when the name is in the linked partner's family tree: 'partner' if only
+   * there, 'both' if it's in the user's tree too. Absent for the user's own names.
+   */
+  tree?: 'partner' | 'both';
 }
 
 /** Where a first name comes from and what it means. */
@@ -53,6 +58,8 @@ export interface NameRoot {
   /** e.g. "great-grandmother" */
   relation: string;
   birthYear?: number;
+  /** True when this ancestor is in the linked partner's tree, not the user's. */
+  fromPartner?: boolean;
 }
 
 /** The WikiTree member a user connected through WikiTree's clientLogin flow. */

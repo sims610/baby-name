@@ -370,6 +370,14 @@ export default function NameSwiper({
 
                 <h2>{currentName.name}</h2>
 
+                {currentName.tree && (
+                  <span className={`name-card-tree theme-${currentName.gender}`}>
+                    {currentName.tree === "both"
+                      ? "🌳 In both of your family trees"
+                      : "🌳 From your partner's family tree"}
+                  </span>
+                )}
+
                 <div className="name-card-divider" />
 
                 <div className="name-detail">

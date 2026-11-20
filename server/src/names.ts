@@ -1,5 +1,6 @@
 import type { NameGender } from 'shared';
-import { fakeAncestry } from './database/fakeData.ts';
+import { fakeAncestry, fakePartnerAncestry } from './database/fakeData.ts';
+import type { AncestorPerson } from './database/fakeData.ts';
 import type { WikiTreeAncestor } from './wikitree.ts';
 
 /** A first name from the family tree, before origin and meaning are added. */
@@ -11,6 +12,8 @@ export interface NameCandidate {
   /** 1 for a parent, 2 for a grandparent, and so on. */
   generation?: number;
   birthYear?: number;
+  /** Set when the name comes from the linked partner's tree. */
+  fromPartner?: boolean;
 }
 
 /** "mother", "grandfather", "great-grandmother", "2nd great-grandfather", … */
@@ -80,9 +83,8 @@ export function toNameCandidates(ancestors: WikiTreeAncestor[]): NameCandidate[]
   });
 }
 
-/** Demo mode: names from fakeData.ts, skipping the user themself (ascendancy number 1). */
-export function fakeNameCandidates(): NameCandidate[] {
-  return fakeAncestry.persons
+function fakeCandidates(persons: AncestorPerson[]): NameCandidate[] {
+  return persons
     .filter((p) => p.display.ascendancyNumber !== '1')
     .map((p) => ({
       name: p.display.name.split(' ')[0],
@@ -92,4 +94,14 @@ export function fakeNameCandidates(): NameCandidate[] {
       generation: Math.floor(Math.log2(Number(p.display.ascendancyNumber))),
       birthYear: p.display.birthYear,
     }));
+}
+
+/** Demo mode: names from fakeData.ts, skipping the user themself (ascendancy number 1). */
+export function fakeNameCandidates(): NameCandidate[] {
+  return fakeCandidates(fakeAncestry.persons);
+}
+
+/** Demo mode with a linked partner: the sample partner tree, marked as theirs. */
+export function fakePartnerNameCandidates(): NameCandidate[] {
+  return fakeCandidates(fakePartnerAncestry.persons).map((c) => ({ ...c, fromPartner: true }));
 }
