@@ -21,6 +21,17 @@ type NameSwiperProps = {
 const SWIPE_THRESHOLD = 100;
 const ANIMATION_DURATION = 280;
 
+/**
+ * How many names one round shows before the summary. Change it to resize rounds;
+ * the server takes up to 100 (MAX_PAGE_SIZE in server/src/routes/nameRouter.ts).
+ */
+const ROUND_SIZE = 25;
+
+type NamePage = { names: BabyName[]; remaining: number; total: number };
+
+/** A new shuffle order for each session; the server repeats it for every round. */
+const randomSeed = () => Math.floor(Math.random() * 0x100000000);
+
 export default function NameSwiper({
   gender,
   source,
@@ -28,6 +39,14 @@ export default function NameSwiper({
 }: NameSwiperProps) {
   const { authRequest } = useAuth();
   const [names, setNames] = useState<BabyName[]>([]);
+  const [seed, setSeed] = useState(randomSeed);
+  const [round, setRound] = useState(1);
+  // From the server: names from this round's page on, and names in the whole tree.
+  const [remaining, setRemaining] = useState(0);
+  const [total, setTotal] = useState(0);
+  // How many names earlier rounds showed. Only demo pages by offset: the user's own
+  // tree leaves out swiped names, so its next round is always the first page.
+  const [shownBefore, setShownBefore] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -46,20 +65,42 @@ export default function NameSwiper({
   const exitTimer = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
+  // Likes and passes still being saved. The next round waits for them, or the
+  // server wouldn't know to leave those names out yet.
+  const pendingSwipes = useRef(new Set<Promise<unknown>>());
+
+  const trackSwipe = (request: Promise<unknown>) => {
+    pendingSwipes.current.add(request);
+    void request.finally(() => pendingSwipes.current.delete(request));
+  };
 
   useEffect(() => {
     const controller = new AbortController();
-    const params = new URLSearchParams({ source });
+    const params = new URLSearchParams({
+      source,
+      limit: String(ROUND_SIZE),
+      seed: String(seed),
+      offset: String(source === "demo" ? shownBefore : 0),
+    });
     if (gender !== "surprise") params.set("gender", gender);
-    const query = `?${params}`;
 
     setLoading(true);
     setError(null);
 
-    authRequest<{ names: BabyName[] }>(`/name/list${query}`, {
-      signal: controller.signal,
-    })
-      .then((data) => setNames(data.names))
+    Promise.allSettled([...pendingSwipes.current])
+      .then(() =>
+        authRequest<NamePage>(`/name/list?${params}`, {
+          signal: controller.signal,
+        })
+      )
+      .then((data) => {
+        setNames(data.names);
+        setRemaining(data.remaining);
+        setTotal(data.total);
+        setCurrentIndex(0);
+        setLikedNames([]);
+        setPassedNames([]);
+      })
       .catch((err: unknown) => {
         if (controller.signal.aborted) return;
         setError(
@@ -73,17 +114,19 @@ export default function NameSwiper({
       });
 
     return () => controller.abort();
-  }, [authRequest, gender, source]);
+  }, [authRequest, gender, source, seed, round, shownBefore]);
 
   const currentName = names[currentIndex];
   const nextName = names[currentIndex + 1];
 
   const isFinished = !loading && !error && currentIndex >= names.length;
+  // Names still to come after this round.
+  const leftAfterRound = remaining - names.length;
 
   const saveFavorite = ({ name, gender }: BabyName) => {
     setSaveError(null);
 
-    authRequest("/name", {
+    trackSwipe(authRequest("/name", {
       method: "POST",
       body: { name, gender },
     }).catch((err: unknown) => {
@@ -94,7 +137,19 @@ export default function NameSwiper({
           err instanceof Error ? err.message : ""
         }`.trim()
       );
-    });
+    }));
+  };
+
+  // Only the user's own tree remembers passes; sample names come back every visit.
+  const savePass = ({ name }: BabyName) => {
+    if (source !== "wikitree") return;
+
+    trackSwipe(authRequest("/name/passed", {
+      method: "POST",
+      body: { name },
+    }).catch(() => {
+      // Not worth interrupting the swiping for: the name just shows up again later.
+    }));
   };
 
   const completeSwipe = (direction: "left" | "right") => {
@@ -104,6 +159,8 @@ export default function NameSwiper({
 
     if (direction === "right") {
       saveFavorite(currentName);
+    } else {
+      savePass(currentName);
     }
 
     setDragging(false);
@@ -218,18 +275,44 @@ export default function NameSwiper({
     };
   }, []);
 
-  const handleRestart = () => {
+  const resetCard = () => {
     if (exitTimer.current !== null) {
       clearTimeout(exitTimer.current);
       exitTimer.current = null;
     }
 
     swipeLocked.current = false;
-    setCurrentIndex(0);
-    setLikedNames([]);
-    setPassedNames([]);
     setDragX(0);
     setExitDirection(null);
+  };
+
+  const handleNextRound = () => {
+    resetCard();
+    setShownBefore((prev) => prev + names.length);
+    setRound((prev) => prev + 1);
+  };
+
+  // Every name has been swiped: forget the passes (favorites stay saved) and
+  // start a fresh shuffle.
+  const handleStartOver = async () => {
+    resetCard();
+    setSaveError(null);
+    if (source === "wikitree") {
+      try {
+        await Promise.allSettled([...pendingSwipes.current]);
+        await authRequest("/name/passed", { method: "DELETE" });
+      } catch (err) {
+        setSaveError(
+          err instanceof Error
+            ? err.message
+            : "Couldn't start over. Please try again."
+        );
+        return;
+      }
+    }
+    setShownBefore(0);
+    setRound(1);
+    setSeed(randomSeed());
   };
 
   const genderLabel =
@@ -282,6 +365,34 @@ export default function NameSwiper({
         <Notice variant="error" title="Couldn't load names">
           {error}
         </Notice>
+      ) : names.length === 0 && total > 0 ? (
+        <div className="swiper-finished">
+          <div className="finished-icon">♡</div>
+
+          <h2>You've seen every name</h2>
+
+          <p>
+            You've swiped through all {total} names. Your
+            favorites are saved; start over to see the ones
+            you passed on again.
+          </p>
+
+          <button
+            type="button"
+            className="swiper-restart-btn"
+            onClick={handleStartOver}
+          >
+            Start Over →
+          </button>
+
+          <button
+            type="button"
+            className="swiper-finished-change"
+            onClick={onChangePreference}
+          >
+            Change Preference
+          </button>
+        </div>
       ) : names.length === 0 ? (
         <Notice variant="info" title="No names yet">
           {source === "wikitree"
@@ -292,10 +403,12 @@ export default function NameSwiper({
         <>
           <div className="swiper-progress">
             <span>
-              Name {currentIndex + 1} of {names.length}
+              Round {round} · Name {currentIndex + 1} of {names.length}
             </span>
 
-            <span>{likedNames.length} liked</span>
+            <span>
+              {likedNames.length} liked · {remaining - currentIndex} left
+            </span>
           </div>
 
           <div className="swiper-progress-track">
@@ -439,11 +552,18 @@ export default function NameSwiper({
         <div className="swiper-finished">
           <div className="finished-icon">♡</div>
 
-          <h2>You've explored all the names!</h2>
+          <h2>
+            {leftAfterRound > 0
+              ? `Round ${round} done!`
+              : "You've explored all the names!"}
+          </h2>
 
           <p>
-            Every great name starts with a little
-            discovery.
+            {leftAfterRound > 0
+              ? `${leftAfterRound} more ${
+                  leftAfterRound === 1 ? "name is" : "names are"
+                } waiting in the next round.`
+              : "Every great name starts with a little discovery."}
           </p>
 
           <div className="finished-stats">
@@ -475,13 +595,23 @@ export default function NameSwiper({
             </div>
           )}
 
-          <button
-            type="button"
-            className="swiper-restart-btn"
-            onClick={handleRestart}
-          >
-            Discover Again →
-          </button>
+          {leftAfterRound > 0 ? (
+            <button
+              type="button"
+              className="swiper-restart-btn"
+              onClick={handleNextRound}
+            >
+              Keep Going →
+            </button>
+          ) : (
+            <button
+              type="button"
+              className="swiper-restart-btn"
+              onClick={handleStartOver}
+            >
+              Start Over →
+            </button>
+          )}
 
           <button
             type="button"

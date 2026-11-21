@@ -260,17 +260,38 @@ export function getRandomName(candidates: NameCandidate[], gender?: NameGender):
   return toBabyName(matches[Math.floor(Math.random() * matches.length)]);
 }
 
-/** Every matching name once, in random order, with duplicate first names removed. */
-export function listNames(candidates: NameCandidate[], gender?: NameGender): BabyName[] {
+/** A repeatable random number generator (mulberry32): the same seed gives the same numbers in [0, 1). */
+function seededRandom(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state = (state + 0x6d2b79f5) >>> 0;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * Every matching name once, in random order, with duplicate first names removed.
+ * With a `seed` the order is repeatable, so Discover can fetch a session's rounds
+ * one page at a time and keep the same order throughout.
+ */
+export function listNames(candidates: NameCandidate[], gender?: NameGender, { seed }: { seed?: number } = {}): BabyName[] {
   const seen = new Set<string>();
   const matches = candidatesMatching(candidates, gender);
   const trees = partnerTrees(matches);
   const names = matches
     .map((c) => toBabyName(c, trees))
     .filter((n) => !seen.has(n.name) && seen.add(n.name));
+  // A seeded shuffle has to start from the same order every time.
+  if (seed !== undefined) {
+    names.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  }
+  const random = seed === undefined ? Math.random : seededRandom(seed);
   // Fisher-Yates shuffle so each visit to Discover starts somewhere different.
   for (let i = names.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(random() * (i + 1));
     [names[i], names[j]] = [names[j], names[i]];
   }
   return names;
@@ -585,6 +606,31 @@ export async function listPushSubscriptions(userId: string): Promise<StoredPushS
     [userId],
   );
   return rows.map((row) => ({ endpoint: row.endpoint, keys: { p256dh: row.p256dh, auth: row.auth } }));
+}
+
+// ---- Names swiped in Discover ----
+
+/** Remembers that the user passed on a name in Discover. Passing again is harmless. */
+export async function addPassedName(userId: string, name: string): Promise<void> {
+  await db.execute(
+    `INSERT INTO passed_names (user_id, name, passed_at) VALUES (?, ?, ?) AS new
+     ON DUPLICATE KEY UPDATE passed_at = new.passed_at`,
+    [userId, name, Date.now()],
+  );
+}
+
+/** Forgets every pass, so those names come back in Discover ("Start over"). */
+export async function clearPassedNames(userId: string): Promise<void> {
+  await db.execute('DELETE FROM passed_names WHERE user_id = ?', [userId]);
+}
+
+/** Lowercased names the user already swiped on: passed, or saved as favorites. */
+export async function swipedNames(userId: string): Promise<Set<string>> {
+  const [rows] = await db.execute<({ name: string } & RowDataPacket)[]>(
+    'SELECT name FROM passed_names WHERE user_id = ? UNION SELECT name FROM favorites WHERE user_id = ?',
+    [userId, userId],
+  );
+  return new Set(rows.map((row) => row.name.toLowerCase()));
 }
 
 /** Origin and meaning of a first name, or null if we don't know it yet. */

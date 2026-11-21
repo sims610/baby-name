@@ -7,14 +7,18 @@ With GEDCOM import, a tree can give hundreds of unique first names. Today `GET /
 - "Name 1 of 600" is daunting.
 
 **Decided with the user:**
-- Discover runs in **rounds of 25**, each fetched from the server as a page, with a short summary between rounds.
+- Discover runs in **rounds of 25** (set by one constant, `ROUND_SIZE`; see Client), each fetched from the server as a page, with a short summary between rounds.
 - Swipes are **remembered on the server**. Likes are already saved as favorites; passes get a new table. Later rounds and later sessions skip both.
 - A "Start over" option clears the passes.
+
+## Changes made while building
+- **`offset` for Demo mode:** sample data doesn't remember swipes, so "Keep going" with the same seed would repeat round 1. The client sends `offset` (how many names earlier rounds showed) for `source=demo`, and always 0 for the user's own tree.
+- **`total` in the response:** the paged response is `{ names, remaining, total }`. `total` lets the app tell "you've seen every name" (total > 0, nothing left) apart from "this tree has no names".
 
 ## Design
 
 ### Paging without offsets
-Every swiped name is left out of the results, so the next page is always just "the first 25 unswiped names". There is no offset or cursor to track.
+Every swiped name is left out of the results, so the next page is always just "the first `ROUND_SIZE` unswiped names". There is no offset or cursor to track.
 - The client picks a random `seed` once per session and sends it on every page request. The server shuffles with that seed, so the order stays stable within a session and different between sessions.
 - A user who leaves mid-round gets the names they didn't swipe again next time.
 
@@ -40,18 +44,19 @@ Every swiped name is left out of the results, so the next page is always just "t
    - Both get `docs` entries.
 
 ### Client: `client/src/components/swipe/NameSwiper.tsx`
+- **Round size:** one constant at the top of the file, `const ROUND_SIZE = 25;`. Change it to resize rounds (for example 10). The server accepts any `limit` from 1 to 100, so going above 100 would also mean raising that cap in `nameRouter.ts`. Nothing else hardcodes the number: the progress and summary text use the length of the page the server returned, so a short last round still reads correctly.
 - **State:**
   - `seed`: a random integer from `useState(() => …)`, re-chosen on Start over.
   - `round`: the round number.
   - `names`: the current page.
   - `remaining`: from the server.
   - `pendingSwipes`: a ref holding the in-flight favorite and pass requests.
-- **Loading:** the effect fetches `/name/list?source&gender&limit=25&seed`. A shared `loadRound()` is used both by the effect and by "Keep going".
+- **Loading:** the effect fetches `/name/list?source&gender&limit=${ROUND_SIZE}&seed`. A shared `loadRound()` is used both by the effect and by "Keep going".
 - **Pass** (wikitree source only): fire a `POST /name/passed`, reporting errors the same way `saveFavorite` does, and push the promise into `pendingSwipes`. `saveFavorite` also pushes its promise there.
 - **Next round:** `await Promise.allSettled(pendingSwipes)` before fetching the next page, so a swipe whose request hasn't finished can't show up again.
-- **Progress line:** "Name 3 of 25 · Round 2 · 412 left", with the bar showing progress through the round.
+- **Progress line:** "Name 3 of 25 · Round 2 · 412 left" (the "of" number is `names.length`), with the bar showing progress through the round.
 - **When a round ends**, the existing finished screen becomes a round summary:
-  - "Round 2 done. You liked 4 of 25."
+  - "Round 2 done. You liked 4 of 25." (also `names.length`)
   - If names remain: a **Keep going** button (loads the next round) plus the existing Change Preference button.
   - If none remain: "You've seen every name in your tree" with a **Start over** button. On wikitree it calls `DELETE /name/passed`, then picks a new seed and round 1. This replaces the current `handleRestart`.
 - **Empty first page:** if the first page is empty but `remaining` is 0 because everything has already been swiped, show the "seen every name" state with Start over. Don't show the "No names yet" notice in that case.

@@ -93,6 +93,16 @@ const SCHEMA = [
     CONSTRAINT invite_codes_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
 
+  // Names the user swiped left on in Discover, so later rounds skip them (liked
+  // names are skipped through favorites). Same collation as favorites.name.
+  `CREATE TABLE IF NOT EXISTS passed_names (
+    user_id   CHAR(36)    NOT NULL,
+    name      VARCHAR(50) COLLATE utf8mb4_0900_as_ci NOT NULL,
+    passed_at BIGINT      NOT NULL,
+    PRIMARY KEY (user_id, name),
+    CONSTRAINT passed_names_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci`,
+
   // Per-user settings. No row means the defaults.
   `CREATE TABLE IF NOT EXISTS user_settings (
     user_id              CHAR(36) NOT NULL PRIMARY KEY,
